@@ -16,6 +16,7 @@ static void (*plain[256]) (void);
 static void (*alt[256]) (void);
 
 #define ALTMODE 033
+#define RUBOUT 0177
 
 static void echo (int ch)
 {
@@ -43,6 +44,11 @@ static void altmode (void)
 {
   altmodes++;
   fn = alt; 
+}
+
+static void rubout (void)
+{
+  fprintf (stderr, "\010 \010");
 }
 
 static char *suffix (void)
@@ -83,6 +89,11 @@ static void login (void)
   done = 1;
 }
 
+static void print_args (void)
+{
+  fprintf (stderr, "\n\rArgs: %s\r\n", prefix);
+}
+
 void dispatch_init (void)
 {
   int i;
@@ -98,11 +109,20 @@ void dispatch_init (void)
       plain[i] = arg;
     }
 
-  plain[ALTMODE] = altmode;
-  plain[':'] = colon;
+  for (i = '0'; i <= '9'; i++)
+    {
+      plain[i] = arg;
+      alt[i] = arg;
+    }
 
+  plain[ALTMODE] = altmode;
   alt[ALTMODE] = altmode;
+  plain[RUBOUT] = rubout;
+  alt[RUBOUT] = rubout;
+
+  plain[':'] = colon;
   alt['u'] = login;
+  alt['?'] = print_args;
 }
 
 static void dispatch (int ch)
