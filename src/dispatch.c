@@ -109,7 +109,7 @@ static void colon (void)
   char *suff = suffix();
   if (suff != NULL)
     {
-      fprintf (stderr, "\r\nColon command: %s\r\n", suffix ());
+      fprintf (stderr, "\r\nColon command: %s\r\n", suff);
       done = 1;
     }
   else				/* user rubbed out : */
