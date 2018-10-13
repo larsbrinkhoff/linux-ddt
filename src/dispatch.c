@@ -106,14 +106,21 @@ static char *suffix (void)
 
 static void colon (void)
 {
-  char *suff = suffix();
-  if (suff != NULL)
+  if (!nprefix)
     {
-      fprintf (stderr, "\r\nColon command: %s\r\n", suff);
-      done = 1;
+      char *suff = suffix();
+      if (suff != NULL)
+	{
+	  fprintf (stderr, "\r\nColon command: %s\r\n", suff);
+	  done = 1;
+	}
+      else				/* user rubbed out : */
+	fprintf (stderr, "\010 \010");
     }
-  else				/* user rubbed out : */
-    fprintf (stderr, "\010 \010");
+  else {
+    fprintf(stderr, "\r\nColon prefix: %s\r\n", prefix);
+    done = 1;
+  }
 }
 
 static void logout (void)
