@@ -169,6 +169,7 @@ void dispatch_init (void)
   alt[RUBOUT] = rubout;
 
   plain[':'] = colon;
+  alt[':'] = colon;
   alt['u'] = login;
   alt['?'] = print_args;
 }
