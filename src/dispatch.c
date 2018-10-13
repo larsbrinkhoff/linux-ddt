@@ -56,7 +56,18 @@ static void altmode (void)
 
 static void rubout (void)
 {
+  if (!(altmodes || nprefix)) {
+    fputs("?? ", stderr);
+    return;
+  }
   fprintf (stderr, "\010 \010");
+  if (altmodes)
+    {
+      if (!--altmodes)
+	fn = plain;
+    }
+  else
+      nprefix--;
 }
 
 static char *suffix (void)
@@ -69,11 +80,24 @@ static char *suffix (void)
 
   while ((ch = term_read ()) != '\r')
     if (n < SUFFIX_MAXBUF)
-      {
-	echo (ch);
-	string[n] = ch;
-	n++;
-      }
+      switch (ch)
+	{
+	case RUBOUT:
+	  if (n)
+	    {
+	      fprintf (stderr, "\010 \010");
+	      string[--n] = 0;
+	    }
+	  else
+	    return NULL;
+	  break;
+	default:
+	  {
+	    echo (ch);
+	    string[n++] = ch;
+	    string[n] = 0;
+	  }
+	}
     else
       fputc(BELL, stderr);
 
@@ -82,8 +106,14 @@ static char *suffix (void)
 
 static void colon (void)
 {
-  fprintf (stderr, "\r\nColon command: %s\r\n", suffix ());
-  done = 1;
+  char *suff = suffix();
+  if (suff != NULL)
+    {
+      fprintf (stderr, "\r\nColon command: %s\r\n", suffix ());
+      done = 1;
+    }
+  else				/* user rubbed out : */
+    fprintf (stderr, "\010 \010");
 }
 
 static void logout (void)
