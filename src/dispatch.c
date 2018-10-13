@@ -3,10 +3,13 @@
 #include <unistd.h>
 #include "term.h"
 
+#define PREFIX_MAXBUF 255
+#define SUFFIX_MAXBUF 255
+
 static const char *prompt = "*";
 
 static int altmodes;
-static char prefix[256];
+static char prefix[PREFIX_MAXBUF+1];
 static int nprefix;
 static char character;
 static int done;
@@ -15,6 +18,7 @@ static void (**fn) (void);
 static void (*plain[256]) (void);
 static void (*alt[256]) (void);
 
+#define BELL 07
 #define ALTMODE 033
 #define RUBOUT 0177
 
@@ -35,9 +39,13 @@ static void unknown (void)
 
 static void arg (void)
 {
-  prefix[nprefix] = character;
-  prefix[nprefix+1] = 0;
-  nprefix++;
+  if (nprefix < PREFIX_MAXBUF)
+    {
+      prefix[nprefix++] = character;
+      prefix[nprefix] = 0;
+    }
+  else
+    fputc(BELL, stderr);
 }
 
 static void altmode (void)
@@ -53,18 +61,21 @@ static void rubout (void)
 
 static char *suffix (void)
 {
-  static char string[256];
+  static char string[SUFFIX_MAXBUF+1];
   int n = 0;
   char ch;
 
   string[0] = 0;
 
   while ((ch = term_read ()) != '\r')
-    {
-      echo (ch);
-      string[n] = ch;
-      n++;
-    }
+    if (n < SUFFIX_MAXBUF)
+      {
+	echo (ch);
+	string[n] = ch;
+	n++;
+      }
+    else
+      fputc(BELL, stderr);
 
   return string;
 }
