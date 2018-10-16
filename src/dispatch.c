@@ -104,6 +104,19 @@ static char *suffix (void)
   return string;
 }
 
+static char *skip_comment(char *buf)
+{
+  if (*buf == ALTMODE)
+    {
+      do
+	buf++;
+      while (*buf && *buf != ALTMODE);
+      if (*buf)
+	buf++;
+    }
+  return buf;
+}
+
 static char *skip_ws(char *buf)
 {
   while (*buf == ' ')
@@ -130,7 +143,7 @@ static void colon (void)
       char *cmd = suffix();
       if (cmd != NULL)
 	{
-	  cmd = skip_ws(cmd);
+	  cmd = skip_ws(skip_comment(cmd));
 	  char *arg = skip_ws(skip_prgm(cmd));
 	  fprintf (stderr, "\r\nColon command: %s arg: %s\r\n", cmd, arg);
 	  done = 1;
