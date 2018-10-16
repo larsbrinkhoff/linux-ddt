@@ -104,14 +104,35 @@ static char *suffix (void)
   return string;
 }
 
+static char *skip_ws(char *buf)
+{
+  while (*buf == ' ')
+    buf++;
+  return buf;
+}
+
+static char *skip_prgm(char *buf)
+{
+  for (; *buf; buf++)
+    if (*buf == ' ')
+      {
+	*buf = '\0';		/* null terminate prgm */
+	buf++;
+	break;
+      }
+  return buf;
+}
+
 static void colon (void)
 {
   if (!nprefix)
     {
-      char *suff = suffix();
-      if (suff != NULL)
+      char *cmd = suffix();
+      if (cmd != NULL)
 	{
-	  fprintf (stderr, "\r\nColon command: %s\r\n", suff);
+	  cmd = skip_ws(cmd);
+	  char *arg = skip_ws(skip_prgm(cmd));
+	  fprintf (stderr, "\r\nColon command: %s arg: %s\r\n", cmd, arg);
 	  done = 1;
 	}
       else				/* user rubbed out : */
