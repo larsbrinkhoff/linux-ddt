@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "term.h"
 
 #define PREFIX_MAXBUF 255
@@ -19,6 +20,7 @@ static void (*plain[256]) (void);
 static void (*alt[256]) (void);
 
 #define BELL 07
+#define CTRL_Q 021
 #define ALTMODE 033
 #define RUBOUT 0177
 
@@ -80,24 +82,42 @@ static char *suffix (void)
 
   while ((ch = term_read ()) != '\r')
     if (n < SUFFIX_MAXBUF)
-      switch (ch)
-	{
-	case RUBOUT:
-	  if (n)
-	    {
-	      fprintf (stderr, "\010 \010");
-	      string[--n] = 0;
-	    }
-	  else
-	    return NULL;
-	  break;
-	default:
+      {
+	if (isprint(ch))
 	  {
 	    echo (ch);
 	    string[n++] = ch;
 	    string[n] = 0;
 	  }
-	}
+	else
+	  switch (ch)
+	    {
+	    case CTRL_Q:	/* quote next char */
+	      if (n < SUFFIX_MAXBUF)
+		{
+		  fputs("^Q", stderr);
+		  ch = term_read ();
+		  fputs("\010 \010\010 \010", stderr);
+		  echo (ch);
+		  string[n++] = ch;
+		  string[n] = 0;
+		}
+	      else
+		fputc(BELL, stderr);
+	      break;
+	    case RUBOUT:
+	      if (n)
+		{
+		  fprintf (stderr, "\010 \010");
+		  string[--n] = 0;
+		}
+	      else
+		return NULL;
+	      break;
+	    default:
+	      fputc(BELL, stderr);
+	    }
+      }
     else
       fputc(BELL, stderr);
 
