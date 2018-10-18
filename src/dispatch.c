@@ -93,14 +93,17 @@ static char *suffix (void)
 	  switch (ch)
 	    {
 	    case CTRL_Q:	/* quote next char */
-	      {
-		fputs("^Q", stderr);
-		ch = term_read ();
-		fputs("\010 \010\010 \010", stderr);
-		echo (ch);
-		string[n++] = ch;
-		string[n] = 0;
-	      }
+	      if (n < SUFFIX_MAXBUF)
+		{
+		  fputs("^Q", stderr);
+		  ch = term_read ();
+		  fputs("\010 \010\010 \010", stderr);
+		  echo (ch);
+		  string[n++] = ch;
+		  string[n] = 0;
+		}
+	      else
+		fputc(BELL, stderr);
 	      break;
 	    case RUBOUT:
 	      if (n)
