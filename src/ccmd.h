@@ -7,4 +7,4 @@ struct builtin {
 
 void help(void);
 void list_builtins(void);
-int builtin(char *name);
+void ccmd(char *cmdline);

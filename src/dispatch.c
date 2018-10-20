@@ -125,58 +125,23 @@ static char *suffix (void)
   return string;
 }
 
-static char *skip_comment(char *buf)
-{
-  if (*buf == ALTMODE)
-    {
-      do
-	buf++;
-      while (*buf && *buf != ALTMODE);
-      if (*buf)
-	buf++;
-    }
-  return buf;
-}
-
-static char *skip_ws(char *buf)
-{
-  while (*buf == ' ')
-    buf++;
-  return buf;
-}
-
-static char *skip_prgm(char *buf)
-{
-  for (; *buf; buf++)
-    if (*buf == ' ')
-      {
-	*buf = '\0';		/* null terminate prgm */
-	buf++;
-	break;
-      }
-  return buf;
-}
-
 static void colon (void)
 {
   if (!nprefix)
     {
-      char *cmd = suffix();
-      if (cmd != NULL)
+      char *cmdline = suffix();
+      if (cmdline != NULL)
+	ccmd(cmdline);
+      else			/* user rubbed out : */
 	{
-	  cmd = skip_ws(skip_comment(cmd));
-	  char *arg = skip_ws(skip_prgm(cmd));
-	  if (!builtin(cmd))
-	    fprintf (stderr, "\r\nSystem command: %s arg: %s\r\n", cmd, arg);
-	  done = 1;
+	  fprintf (stderr, "\010 \010");
+	  return;
 	}
-      else				/* user rubbed out : */
-	fprintf (stderr, "\010 \010");
     }
-  else {
+  else
     fprintf(stderr, "\r\nSymbol or block prefix: %s\r\n", prefix);
-    done = 1;
-  }
+
+  done = 1;
 }
 
 static void logout (void)

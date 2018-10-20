@@ -2,6 +2,8 @@
 #include <string.h>
 #include "ccmd.h"
 
+#define ALTMODE 033
+
 char helptext[] = 
   "\r\n You are typing at \"DDT\", a top level command interpreter/debugger for Linux.\r\n"
   " DDT commands start with a colon and are usually terminated by a carriage return.\r\n"
@@ -17,17 +19,55 @@ struct builtin builtins[] =
    {0, 0, 0, 0}
   };
 
-int builtin(char *name)
+static int builtin(char *name)
 {
   for (struct builtin *p = builtins; p->name; p++)
-    {
-      if (strncmp(p->name, name, 6) == 0)
-	{
-	  p->fn();
-	  return 1;
-	}
-    }
+    if (strncmp(p->name, name, 6) == 0)
+      {
+	p->fn();
+	return 1;
+      }
   return 0;
+}
+
+static char *skip_comment(char *buf)
+{
+  if (*buf == ALTMODE)
+    {
+      do
+	buf++;
+      while (*buf && *buf != ALTMODE);
+      if (*buf)
+	buf++;
+    }
+  return buf;
+}
+
+static char *skip_ws(char *buf)
+{
+  while (*buf == ' ')
+    buf++;
+  return buf;
+}
+
+static char *skip_prgm(char *buf)
+{
+  for (; *buf; buf++)
+    if (*buf == ' ')
+      {
+	*buf = '\0';		/* null terminate prgm */
+	buf++;
+	break;
+      }
+  return buf;
+}
+
+void ccmd(char *cmdline)
+{
+  char *cmd = skip_ws(skip_comment(cmdline));
+  char *arg = skip_ws(skip_prgm(cmd));
+  if (!builtin(cmd))
+    fprintf (stderr, "\r\nSystem command: %s arg: %s\r\n", cmd, arg);
 }
 
 void list_builtins(void)
