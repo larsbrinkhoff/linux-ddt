@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include "term.h"
+#include "ccmd.h"
 
 #define PREFIX_MAXBUF 255
 #define SUFFIX_MAXBUF 255
@@ -165,14 +166,15 @@ static void colon (void)
 	{
 	  cmd = skip_ws(skip_comment(cmd));
 	  char *arg = skip_ws(skip_prgm(cmd));
-	  fprintf (stderr, "\r\nColon command: %s arg: %s\r\n", cmd, arg);
+	  if (!builtin(cmd))
+	    fprintf (stderr, "\r\nSystem command: %s arg: %s\r\n", cmd, arg);
 	  done = 1;
 	}
       else				/* user rubbed out : */
 	fprintf (stderr, "\010 \010");
     }
   else {
-    fprintf(stderr, "\r\nColon prefix: %s\r\n", prefix);
+    fprintf(stderr, "\r\nSymbol or block prefix: %s\r\n", prefix);
     done = 1;
   }
 }

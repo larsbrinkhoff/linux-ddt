@@ -1,5 +1,5 @@
 PROGS=ddt
-OBJS=main.o dispatch.o term.o
+OBJS=main.o dispatch.o term.o ccmd.o
 CFLAGS=-O1 -g
 
 all: $(PROGS)
@@ -16,3 +16,4 @@ clobber: clean
 main.o: main.c term.h dispatch.h
 dispatch.o: dispatch.c term.h
 term.o: term.c
+ccmd.o: ccmd.c ccmd.h
