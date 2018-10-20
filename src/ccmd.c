@@ -4,6 +4,8 @@
 #include <sys/utsname.h>
 #include "ccmd.h"
 
+void help(void);
+void list_builtins(void);
 void version(void);
 
 #define VERSION "0"
@@ -20,6 +22,7 @@ char helptext[] =
 
 struct builtin builtins[] =
   {
+   {"clear", "", "clear screen [^L]", clear},
    {"help", "", "print out basic information", help},
    {"version", "", "type version number of Linux and DDT", version},
    {"?", "", "list all : commands", list_builtins},
@@ -107,4 +110,9 @@ void version(void)
 	  VERSION);
   if (!ttyname_r(0, ttyname, 32))
     fprintf(stderr, "%s\r\n", ttyname);
+}
+
+void clear(void)
+{
+  fprintf(stderr, "\033[2J\033[H");
 }

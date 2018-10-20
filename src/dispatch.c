@@ -21,6 +21,7 @@ static void (*plain[256]) (void);
 static void (*alt[256]) (void);
 
 #define BELL 07
+#define FORMFEED 014
 #define CTRL_Q 021
 #define ALTMODE 033
 #define RUBOUT 0177
@@ -163,6 +164,12 @@ static void print_args (void)
   fprintf (stderr, "\n\rArgs: %s\r\n", prefix);
 }
 
+static void formfeed (void)
+{
+  clear();
+  fputs (prefix, stderr);
+}
+
 void dispatch_init (void)
 {
   int i;
@@ -184,6 +191,7 @@ void dispatch_init (void)
       alt[i] = arg;
     }
 
+  plain[FORMFEED] = formfeed;
   plain[ALTMODE] = altmode;
   alt[ALTMODE] = altmode;
   plain[RUBOUT] = rubout;

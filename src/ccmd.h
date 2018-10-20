@@ -5,6 +5,7 @@ struct builtin {
   void (*fn) (void);
 };
 
-void help(void);
-void list_builtins(void);
 void ccmd(char *cmdline);
+
+void version(void);
+void clear(void);
