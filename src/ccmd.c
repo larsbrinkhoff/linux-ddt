@@ -1,6 +1,12 @@
+#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/utsname.h>
 #include "ccmd.h"
+
+void version(void);
+
+#define VERSION "0"
 
 #define ALTMODE 033
 
@@ -15,6 +21,7 @@ char helptext[] =
 struct builtin builtins[] =
   {
    {"help", "", "print out basic information", help},
+   {"version", "", "type version number of Linux and DDT", version},
    {"?", "", "list all : commands", list_builtins},
    {0, 0, 0, 0}
   };
@@ -83,4 +90,21 @@ void list_builtins(void)
 void help(void)
 {
   fputs(helptext, stderr);
+}
+
+void version(void)
+{
+  struct utsname luname = { 0 };
+  char ttyname[32];
+
+  if (uname(&luname))
+    return;			/* fix me - note syscall failure */
+
+  fprintf(stderr, "\r\n%s %s.%s. DDT.%s.\r\n",
+	  luname.nodename,
+	  luname.sysname,
+	  luname.release,
+	  VERSION);
+  if (!ttyname_r(0, ttyname, 32))
+    fprintf(stderr, "%s\r\n", ttyname);
 }
