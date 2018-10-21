@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/utsname.h>
 #include "ccmd.h"
+#include "jobs.h"
 
 enum sysdir { SYS, SYS1, SYS2, SYS3 };
 #define QTY_SYSFDS 4
@@ -30,6 +31,9 @@ struct builtin builtins[] =
   {
    {"clear", "", "clear screen [^L]", clear},
    {"help", "", "print out basic information", help},
+   {"job", "", "create or select job [$j]", job},
+   {"listj", "", "list jobs [$$v]", listj},
+   {"kill", "", "kill current job [$^x.]", kill_currjob},
    {"version", "", "type version number of Linux and DDT", version},
    {"?", "", "list all : commands", list_builtins},
    {0, 0, 0, 0}
