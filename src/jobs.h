@@ -18,4 +18,9 @@ struct job {
 
 void job(char *jname);
 void listj(char *);
+void show_currjob(char *arg);
 void kill_currjob(char *);
+
+void set_currjname(char *jname);
+void list_currjob(void);
+void next_job(void);

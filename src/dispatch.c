@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include "term.h"
 #include "ccmd.h"
+#include "jobs.h"
 
 #define PREFIX_MAXBUF 255
 #define SUFFIX_MAXBUF 255
@@ -170,6 +171,26 @@ static void formfeed (void)
   fputs (prefix, stderr);
 }
 
+static void select_job (void)
+{
+  if (altmodes > 1)
+    {
+      if (nprefix)
+	set_currjname(prefix);
+      else
+	show_currjob(prefix);
+      done = 1;
+      return;
+    }
+
+  if (nprefix)
+    job(prefix);
+  else
+    next_job();
+
+  done = 1;
+}
+
 void dispatch_init (void)
 {
   int i;
@@ -199,6 +220,7 @@ void dispatch_init (void)
 
   plain[':'] = colon;
   alt[':'] = colon;
+  alt['j'] = select_job;
   alt['u'] = login;
   alt['?'] = print_args;
 

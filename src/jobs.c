@@ -34,6 +34,46 @@ static char getopenslot(void)
   return -1;
 }
 
+void set_currjname (char *jname)
+{
+  if (currjob->jname)
+    free(currjob->jname);
+  currjob->jname = strdup(jname);
+  fputs("\r\n", stderr);
+}
+
+void show_currjob (char *arg)
+{
+  if (currjob)
+    {
+      if (*arg == 0)
+	list_currjob();
+      else
+	set_currjname(arg);
+    }
+  else if (*arg)
+    fprintf(stderr, "\r\nWould set self name\r\n");
+}
+
+void list_currjob(void)
+{
+  if (currjob)
+    fprintf(stderr, "\r\n%c %s %c %d\r\n",
+	    '*',
+	    currjob->jname, currjob->state, currjob->slot);
+}
+
+void next_job(void)
+{
+  for (struct job *j = jobs; j < jobsend; j++)
+    if (j->state != 0 && j != currjob)
+      {
+	currjob = j;
+	fprintf(stderr, " %s$j\r\n", currjob->jname);
+	break;
+      }
+}
+
 void listj(char *arg)
 {
   fputs("\r\n", stderr);
