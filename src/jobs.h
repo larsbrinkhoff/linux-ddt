@@ -17,4 +17,5 @@ struct job {
 };
 
 void job(char *jname);
-void kill_currjob(void);
+void listj(char *);
+void kill_currjob(char *);

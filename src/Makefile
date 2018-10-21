@@ -1,5 +1,5 @@
 PROGS=ddt
-OBJS=main.o dispatch.o term.o ccmd.o
+OBJS=main.o dispatch.o term.o ccmd.o jobs.o
 CFLAGS=-O1 -g
 
 all: $(PROGS)
@@ -17,3 +17,4 @@ main.o: main.c term.h dispatch.h
 dispatch.o: dispatch.c term.h ccmd.h
 term.o: term.c
 ccmd.o: ccmd.c ccmd.h
+jobs.o: jobs.c jobs.h
