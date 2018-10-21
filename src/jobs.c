@@ -47,9 +47,9 @@ void show_currjob (char *arg)
   if (currjob)
     {
       if (*arg)
-	list_currjob();
-      else
 	set_currjname(arg);
+      else
+	list_currjob();
     }
   else if (*arg)
     fprintf(stderr, "\r\nWould set self name\r\n");
