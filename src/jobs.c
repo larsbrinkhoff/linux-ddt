@@ -5,6 +5,7 @@
 #include "jobs.h"
 
 #define MAXJOBS 8
+#define MAX_ARGS 256
 
 struct job jobs[MAXJOBS] = { 0 };
 struct job *jobsend = &jobs[MAXJOBS];
@@ -148,4 +149,60 @@ void kill_currjob(char *arg)
     {
       fprintf(stderr, "\r\nPrompt login? here.\r\n");
     }
+}
+
+void jclprt(char *arg)
+{
+  if (currjob)
+    {
+      char **argv = currjob->proc.argv;
+      fputs("\r\n", stderr);
+      argv++;
+      while (*argv)
+	{
+	  fprintf(stderr, "%s ", *argv);
+	  argv++;
+	}
+      fputs("\r\n", stderr);
+    }
+}
+
+void jcl(char *argstr)
+{
+  if (!currjob)
+    {
+      fprintf(stderr, "\r\nTried to set self jcl\r\n");
+      return;
+    }
+
+  if (currjob->jcl) free(currjob->jcl);
+  if (currjob->proc.argv) {
+    char **v = currjob->proc.argv;
+    while (*v)
+      {
+	free(*v);
+	v++;
+      }
+    free(currjob->proc.argv);
+  }
+
+  char *buf;
+  if ((buf = (char *)malloc(strlen(argstr))) == NULL)
+    {
+      fprintf(stderr, "\r\nmalloc fail\r\n");
+      return;
+    }
+  strcpy(buf, argstr);
+  if ((currjob->proc.argv = malloc(MAX_ARGS * sizeof(char **))) == NULL)
+    {
+      fprintf(stderr, "\r\nmalloc fail\r\n");
+      return;
+    }
+
+  int argc = 1;
+  currjob->proc.argv[argc++] = strtok(buf, " \t");
+  while (argc < MAX_ARGS
+	 && ((currjob->proc.argv[argc] = strtok(NULL, " \t")) != NULL))
+    currjob->proc.argv[++argc] == NULL;
+  fputs("\r\n", stderr);
 }

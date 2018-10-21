@@ -24,3 +24,5 @@ void kill_currjob(char *);
 void set_currjname(char *jname);
 void list_currjob(void);
 void next_job(void);
+void jcl(char *argstr);
+void jclprt(char *);
