@@ -46,7 +46,7 @@ void show_currjob (char *arg)
 {
   if (currjob)
     {
-      if (*arg == 0)
+      if (*arg)
 	list_currjob();
       else
 	set_currjname(arg);
