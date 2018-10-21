@@ -201,6 +201,8 @@ void dispatch_init (void)
   alt[':'] = colon;
   alt['u'] = login;
   alt['?'] = print_args;
+
+  init_ccmd();
 }
 
 static void dispatch (int ch)

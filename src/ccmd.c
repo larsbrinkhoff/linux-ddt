@@ -1,8 +1,14 @@
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
 #include <sys/utsname.h>
 #include "ccmd.h"
+
+enum sysdir { SYS, SYS1, SYS2, SYS3 };
+#define QTY_SYSFDS 4
+int sysfds[QTY_SYSFDS];
 
 void help(char *);
 void version(char *);
@@ -38,6 +44,34 @@ static int builtin(char *name, char *arg)
 	return 1;
       }
   return 0;
+}
+
+void init_ccmd(void)
+{
+  sysfds[SYS] = openat(AT_FDCWD,
+		       "/bin", O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+  sysfds[SYS1] = openat(AT_FDCWD,
+			"/sbin", O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+  sysfds[SYS2] = openat(AT_FDCWD,
+			"/usr/bin", O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+  sysfds[SYS3] = openat(AT_FDCWD,
+			"/usr/sbin", O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+}
+
+static int syscommand(char *name, char *arg)
+{
+  int fd;
+  for (int i = 0; i < QTY_SYSFDS; i++)
+    {
+      if (sysfds[i] == -1)
+	continue;
+      if ((fd = faccessat(sysfds[i], name, X_OK, 0)) != -1)
+	{
+	  fprintf(stderr, "\r\nSystem command: %s arg: %s\r\n", name, arg);
+	  return fd;
+	}
+    }
+  return -1;
 }
 
 static char *skip_comment(char *buf)
@@ -77,7 +111,8 @@ void ccmd(char *cmdline)
   char *cmd = skip_ws(skip_comment(cmdline));
   char *arg = skip_ws(skip_prgm(cmd));
   if (!builtin(cmd, arg))
-    fprintf (stderr, "\r\nSystem command: %s arg: %s\r\n", cmd, arg);
+    if (syscommand(cmd, arg) == -1)
+      fprintf (stderr, "\r\n%s - Unknown command\r\n", cmd);
 }
 
 void list_builtins(char *arg)
