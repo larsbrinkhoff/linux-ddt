@@ -166,7 +166,7 @@ static void print_args (void)
 
 static void formfeed (void)
 {
-  clear();
+  clear(NULL);
   fputs (prefix, stderr);
 }
 

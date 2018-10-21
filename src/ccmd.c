@@ -4,9 +4,9 @@
 #include <sys/utsname.h>
 #include "ccmd.h"
 
-void help(void);
-void list_builtins(void);
-void version(void);
+void help(char *);
+void version(char *);
+void list_builtins(char *);
 
 #define VERSION "0"
 
@@ -29,12 +29,12 @@ struct builtin builtins[] =
    {0, 0, 0, 0}
   };
 
-static int builtin(char *name)
+static int builtin(char *name, char *arg)
 {
   for (struct builtin *p = builtins; p->name; p++)
     if (strncmp(p->name, name, 6) == 0)
       {
-	p->fn();
+	p->fn(arg);
 	return 1;
       }
   return 0;
@@ -76,11 +76,11 @@ void ccmd(char *cmdline)
 {
   char *cmd = skip_ws(skip_comment(cmdline));
   char *arg = skip_ws(skip_prgm(cmd));
-  if (!builtin(cmd))
+  if (!builtin(cmd, arg))
     fprintf (stderr, "\r\nSystem command: %s arg: %s\r\n", cmd, arg);
 }
 
-void list_builtins(void)
+void list_builtins(char *arg)
 {
   fputs("\r\n<The commands explicitly listed here are part of DDT, not separate programs>\r\n", stderr);
   for (struct builtin *p = builtins; p->name; p++)
@@ -90,12 +90,12 @@ void list_builtins(void)
 	  "<prgm>", "<optional jcl>", "invoke program, passing JCL if present");
 }
 
-void help(void)
+void help(char *arg)
 {
   fputs(helptext, stderr);
 }
 
-void version(void)
+void version(char *arg)
 {
   struct utsname luname = { 0 };
   char ttyname[32];
@@ -112,7 +112,7 @@ void version(void)
     fprintf(stderr, "%s\r\n", ttyname);
 }
 
-void clear(void)
+void clear(char *arg)
 {
   fprintf(stderr, "\033[2J\033[H");
 }

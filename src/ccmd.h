@@ -2,10 +2,8 @@ struct builtin {
   char *name;
   char *arghelp;
   char *desc;
-  void (*fn) (void);
+  void (*fn) (char *arg);
 };
 
 void ccmd(char *cmdline);
-
-void version(void);
-void clear(void);
+void clear(char *);
