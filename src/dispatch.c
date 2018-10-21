@@ -160,6 +160,15 @@ static void login (void)
   done = 1;
 }
 
+static void raid (void)
+{
+  if (altmodes > 1)
+    listj(NULL);
+  else
+    fprintf(stderr, "\r\na raid command %s\r\n", prefix);
+  done = 1;
+}
+
 static void print_args (void)
 {
   fprintf (stderr, "\n\rArgs: %s\r\n", prefix);
@@ -222,6 +231,7 @@ void dispatch_init (void)
   alt[':'] = colon;
   alt['j'] = select_job;
   alt['u'] = login;
+  alt['v'] = raid;
   alt['?'] = print_args;
 
   init_ccmd();
