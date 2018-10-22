@@ -31,9 +31,11 @@ struct builtin builtins[] =
   {
    {"clear", "", "clear screen [^L]", clear},
    {"help", "", "print out basic information", help},
+   {"jcl", "<line>", "set job control string", jcl},
+   {"jclprt", "", "print the job control strong", jclprt},
    {"job", "", "create or select job [$j]", job},
-   {"listj", "", "list jobs [$$v]", listj},
    {"kill", "", "kill current job [$^x.]", kill_currjob},
+   {"listj", "", "list jobs [$$v]", listj},
    {"version", "", "type version number of Linux and DDT", version},
    {"?", "", "list all : commands", list_builtins},
    {0, 0, 0, 0}
