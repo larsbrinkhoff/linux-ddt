@@ -5,6 +5,7 @@
 #include "term.h"
 #include "ccmd.h"
 #include "jobs.h"
+#include "user.h"
 
 #define PREFIX_MAXBUF 255
 #define SUFFIX_MAXBUF 255
@@ -146,17 +147,12 @@ static void colon (void)
   done = 1;
 }
 
-static void logout (void)
-{
-  exit (0);
-}
-
 static void login (void)
 {
   if (altmodes > 1)
-    logout ();
-
-  fprintf (stderr, "\r\nWelcome, %s\r\n", prefix);
+    logout (NULL);
+  else
+    login_as(prefix);
   done = 1;
 }
 
