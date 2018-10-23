@@ -26,3 +26,4 @@ void list_currjob(void);
 void next_job(void);
 void jcl(char *argstr);
 void jclprt(char *);
+void massacre(char *);

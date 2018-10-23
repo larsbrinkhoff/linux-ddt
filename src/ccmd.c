@@ -6,6 +6,7 @@
 #include <sys/utsname.h>
 #include "ccmd.h"
 #include "jobs.h"
+#include "user.h"
 
 enum sysdir { SYS, SYS1, SYS2, SYS3 };
 #define QTY_SYSFDS 4
@@ -36,6 +37,9 @@ struct builtin builtins[] =
    {"job", "", "create or select job [$j]", job},
    {"kill", "", "kill current job [$^x.]", kill_currjob},
    {"listj", "", "list jobs [$$v]", listj},
+   {"login", "<name>", "log in [$u]", login_as},
+   {"logout", "", "log off [$$u]", logout},
+   {"massacre", "", "kill all your jobs", massacre},
    {"version", "", "type version number of Linux and DDT", version},
    {"?", "", "list all : commands", list_builtins},
    {0, 0, 0, 0}
