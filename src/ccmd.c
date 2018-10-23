@@ -36,6 +36,7 @@ struct builtin builtins[] =
    {"job", "", "create or select job [$j]", job},
    {"kill", "", "kill current job [$^x.]", kill_currjob},
    {"listj", "", "list jobs [$$v]", listj},
+   {"massacre", "", "kill all your jobs", massacre},
    {"version", "", "type version number of Linux and DDT", version},
    {"?", "", "list all : commands", list_builtins},
    {0, 0, 0, 0}

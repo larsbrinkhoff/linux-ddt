@@ -126,16 +126,21 @@ static void free_job(struct job *j)
   j->state = 0;
 }
 
+void kill_job(struct job *j)
+{
+  if (j->state != '-')
+    {
+      fprintf(stderr, "\r\nCan't do that yet.\r\n");
+      return;
+    }
+  free_job(j);
+}
+
 void kill_currjob(char *arg)
 {
   if (currjob)
     {
-      if (currjob->state != '-')
-	{
-	  fprintf(stderr, "\r\nCan't do that yet.\r\n");
-	  return;
-	}
-      free_job(currjob);
+      kill_job(currjob);
       currjob = 0;
       char slot;
       if ((slot = nextslot()) != -1)
@@ -149,6 +154,15 @@ void kill_currjob(char *arg)
     {
       fprintf(stderr, "\r\nPrompt login? here.\r\n");
     }
+}
+
+void massacre(char *arg)
+{
+  for (struct job *j = jobs; j < jobsend; j++)
+    if (j->state)
+      kill_job(j);
+  currjob = 0;
+  fputs("\r\n", stderr);
 }
 
 void jclprt(char *arg)
