@@ -37,6 +37,7 @@ struct builtin builtins[] =
    {"job", "", "create or select job [$j]", job},
    {"kill", "", "kill current job [$^x.]", kill_currjob},
    {"listj", "", "list jobs [$$v]", listj},
+   {"load", "<file>", "load file into core [$l]", load},
    {"login", "<name>", "log in [$u]", login_as},
    {"logout", "", "log off [$$u]", logout},
    {"massacre", "", "kill all your jobs", massacre},

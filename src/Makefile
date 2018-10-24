@@ -17,5 +17,5 @@ main.o: main.c term.h dispatch.h
 dispatch.o: dispatch.c term.h ccmd.h jobs.h user.h
 term.o: term.c
 ccmd.o: ccmd.c ccmd.h jobs.h user.h
-jobs.o: jobs.c jobs.h
+jobs.o: jobs.c jobs.h user.h
 user.o: user.c user.h

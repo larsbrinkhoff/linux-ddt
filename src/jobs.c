@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "jobs.h"
+#include "user.h"
 
 #define MAXJOBS 8
 #define MAX_ARGS 256
@@ -219,4 +220,15 @@ void jcl(char *argstr)
 	 && ((currjob->proc.argv[argc] = strtok(NULL, " \t")) != NULL))
     currjob->proc.argv[++argc] == NULL;
   fputs("\r\n", stderr);
+}
+
+void load(char *name)
+{
+  if (!runame())
+    {
+      fprintf(stderr, "\r\n(Please Log In)\r\n\r\n:kill\r\n");
+      return;
+    }
+
+  fprintf(stderr, "\r\n load here\r\n");
 }
