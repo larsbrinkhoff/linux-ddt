@@ -9,8 +9,8 @@ static void cleanup (void)
 
 int main (int argc, char **argv)
 {
-  atexit (cleanup);
   term_init ();
+  atexit (cleanup);
   dispatch_init ();
 
   for (;;)
