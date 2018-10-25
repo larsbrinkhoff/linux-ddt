@@ -1,7 +1,10 @@
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 #include "jobs.h"
 #include "user.h"
 
@@ -166,7 +169,7 @@ void massacre(char *arg)
   fputs("\r\n", stderr);
 }
 
-void jclprt(char *arg)
+void jclprt(char *notused)
 {
   if (currjob)
     {
@@ -222,6 +225,12 @@ void jcl(char *argstr)
   fputs("\r\n", stderr);
 }
 
+void child_load(void)
+{
+  fprintf(stderr, "\r\nchild loading %s\r\n", currjob->proc.prog);
+  _exit(1);
+}
+
 void load(char *name)
 {
   if (!runame())
@@ -230,5 +239,41 @@ void load(char *name)
       return;
     }
 
-  fprintf(stderr, "\r\n load here\r\n");
+  if (!currjob)
+    {
+      fprintf(stderr, "\r\nno current job\r\n");
+      return;
+    }
+
+  if (currjob->state != '-')
+    {
+      fprintf(stderr, "\r\nJob already loaded\r\n");
+      return;
+    }
+
+  errno = 0;
+  pid_t child = fork();
+
+  if (child == -1)
+    {
+      fprintf(stderr, "\r\nfork failed\r\n");
+      return;
+    }
+
+  if (!child)
+    child_load();
+
+  int status = 0;
+  waitpid(child, &status, 0);
+  if (WIFEXITED(status) || WIFSIGNALED(status))
+    {
+      fprintf(stderr, "\r\nchild exec failed: %d\r\n", status);
+      return;
+    }
+
+  currjob->proc.pid = child;
+  setpgid(child, currjob->proc.pid);
+  currjob->state = '~';
+
+  fputs("\r\n", stderr);
 }
