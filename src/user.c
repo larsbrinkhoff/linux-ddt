@@ -22,10 +22,7 @@ void logout (char *ignore)
 	}
     }
   else
-    {
-      fputs("\r\n", stderr);
-      exit (0);
-    }
+    exit (0);
 }
 
 void login_as (char *name)
