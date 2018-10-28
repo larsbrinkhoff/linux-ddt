@@ -21,6 +21,7 @@ struct job *jobsend = &jobs[MAXJOBS];
 struct job *currjob = 0;
 struct job *fg = 0;
 
+static char errstr[64];
 static int pfd1[2], pfd2[2];
 
 void jobs_init(void)
@@ -31,6 +32,15 @@ void jobs_init(void)
   }
 }
 
+void errout(char *arg)
+{
+  int errno_ = errno;
+  errstr[0] = 0;
+  char *e = strerror_r(errno_, errstr, 64);
+  if (arg)
+    fprintf(stderr, " %s:", arg);
+  fprintf(stderr, " %s\r\n", e);
+}
 
 static struct job *getjob(char *jname)
 {
@@ -163,10 +173,10 @@ void kill_job(struct job *j)
     case 'r':
       errno = 0;
       if (kill(j->proc.pid, SIGTERM) == -1)
-      	perror("kill");
+	errout("kill");
       else
       	if (waitpid(j->proc.pid, &status, WUNTRACED) == -1)
-	  perror("waitpid");
+	  errout("waitpid");
       break;
     default:
       fputs("\r\nCan't do that yet.\r\n", stderr);
@@ -444,7 +454,7 @@ void check_jobs(void)
     }
   if (child == -1 && errno != ECHILD)
     {
-      perror("checkjobs waitpid");
+      errout("checkjobs waitpid");
     }
 }
 
