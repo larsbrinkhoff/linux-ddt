@@ -6,8 +6,6 @@
 
 char *_runame = 0;
 char *_xuname = 0;
-char *_hsname = 0;
-char *_msname = 0;
 
 void logout (char *ignore)
 {
