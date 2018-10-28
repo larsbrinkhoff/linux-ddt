@@ -126,6 +126,12 @@ static char *suffix (void)
     else
       fputc(BELL, stderr);
 
+  while (n--)
+    if (string[n] == ' ')
+      string[n] = 0;
+    else
+      break;
+
   return string;
 }
 
