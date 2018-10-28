@@ -1,11 +1,10 @@
 struct process {
   // struct process *next;
-  char *prog;
+  struct file ufname;
   char **argv;
   char **env;
   pid_t pid;
   int status;
-  int dirfd;
 };
 
 struct job {

@@ -9,6 +9,7 @@
 #include <sys/ptrace.h>
 #include <errno.h>
 #include <termios.h>
+#include "files.h"
 #include "jobs.h"
 #include "user.h"
 #include "term.h"
@@ -133,7 +134,10 @@ void job(char *jname)
       j->state = '-';
       j->slot = slot;
       j->tmode = def_termios;
-      j->proc.prog = NULL;
+      j->proc.ufname.name = NULL;
+      j->proc.ufname.devfd = -1;
+      j->proc.ufname.dirfd = -1;
+      j->proc.ufname.fd = -1;
       j->proc.argv = malloc(sizeof(char *) * 2);
       j->proc.argv[0] = NULL;
       j->proc.argv[1] = NULL;
@@ -142,7 +146,6 @@ void job(char *jname)
       j->proc.env[1] = NULL;
       j->proc.pid = 0;
       j->proc.status = 0;
-      j->proc.dirfd = -1;
       currjob = j;
       fputs("\r\n!\r\n", stderr);
     }
@@ -154,7 +157,7 @@ static void free_job(struct job *j)
 {
   if (j->jname) free(j->jname);
   if (j->jcl) free(j->jcl);
-  if (j->proc.prog) free(j->proc.prog);
+  if (j->proc.ufname.name) free(j->proc.ufname.name);
   if (j->proc.argv) free(j->proc.argv);
   // if (j->proc.env) free(j->proc.env);
   j->state = 0;
@@ -302,7 +305,7 @@ void child_load(void)
   int fd;
 
   errno = 0;
-  while ((fd = openat(AT_FDCWD, currjob->proc.prog,
+  while ((fd = openat(AT_FDCWD, currjob->proc.ufname.name,
 		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
     if (errno == EINTR)
       {
@@ -347,8 +350,8 @@ void load(char *name)
       return;
     }
 
-  if (currjob->proc.prog) free(currjob->proc.prog);
-  currjob->proc.prog = strdup(name);
+  if (currjob->proc.ufname.name) free(currjob->proc.ufname.name);
+  currjob->proc.ufname.name = strdup(name);
   if (currjob->proc.argv[0]) free(currjob->proc.argv[0]);
   currjob->proc.argv[0] = strdup(name);
 

@@ -6,9 +6,9 @@
 #include <sys/utsname.h>
 #include <termios.h>
 #include "ccmd.h"
+#include "files.h"
 #include "jobs.h"
 #include "user.h"
-#include "files.h"
 
 enum sysdir { SYS, SYS1, SYS2, SYS3 };
 #define QTY_SYSFDS 4
