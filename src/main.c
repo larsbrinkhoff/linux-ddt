@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "term.h"
 #include "dispatch.h"
+#include "jobs.h"
 
 static void cleanup (void)
 {
@@ -9,12 +10,17 @@ static void cleanup (void)
 
 int main (int argc, char **argv)
 {
-  atexit (cleanup);
   term_init ();
+  atexit (cleanup);
+  jobs_init ();
   dispatch_init ();
 
   for (;;)
-    prompt_and_execute ();
+    if (!fgwait())
+      {
+	check_jobs();
+	prompt_and_execute ();
+      }
 
   return 0;
 }

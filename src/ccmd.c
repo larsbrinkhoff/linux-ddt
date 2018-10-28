@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/utsname.h>
+#include <termios.h>
 #include "ccmd.h"
 #include "jobs.h"
 #include "user.h"
@@ -31,15 +32,22 @@ char helptext[] =
 struct builtin builtins[] =
   {
    {"clear", "", "clear screen [^L]", clear},
+   {"continue", "", "continue program, giving job TTY [$p]", contin},
+   {"go", "<start addr (opt)>", "start inferior [$g]", go},
+   {"gzp", "<start addr (opt)>", "start job without tty [$g^z^p]", gzp},
    {"help", "", "print out basic information", help},
    {"jcl", "<line>", "set job control string", jcl},
    {"jclprt", "", "print the job control strong", jclprt},
    {"job", "", "create or select job [$j]", job},
    {"kill", "", "kill current job [$^x.]", kill_currjob},
    {"listj", "", "list jobs [$$v]", listj},
+   {"load", "<file>", "load file into core [$l]", load},
    {"login", "<name>", "log in [$u]", login_as},
    {"logout", "", "log off [$$u]", logout},
    {"massacre", "", "kill all your jobs", massacre},
+   {"proced", "", "same as proceed", proced},
+   {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
+   {"start", "<start addr (opt)>", "start inferior [<addr>$g]", go},
    {"version", "", "type version number of Linux and DDT", version},
    {"?", "", "list all : commands", list_builtins},
    {0, 0, 0, 0}

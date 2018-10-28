@@ -1,17 +1,27 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <termios.h>
 #include "jobs.h"
 
-char *username = 0;
+char *_runame = 0;
+char *_xuname = 0;
+char *_hsname = 0;
+char *_msname = 0;
 
 void logout (char *ignore)
 {
-  if (username)
+  fputs("\r\n", stderr);
+  if (_runame)
     {
       massacre(NULL);
-      free(username);
-      username = 0;
+      free(_runame);
+      _runame = 0;
+      if (_xuname)
+	{
+	  free(_xuname);
+	  _xuname = 0;
+	}
     }
   else
     {
@@ -22,15 +32,14 @@ void logout (char *ignore)
 
 void login_as (char *name)
 {
-  if (username)
-    {
-      logout(NULL);
-    }
-  username = strdup(name);
-  fprintf (stderr, "\r\nWelcome, %s\r\n", username);
+  if (_runame)
+    logout(NULL);
+  _runame = strdup(name);
+  _xuname = strdup(name);
+  fprintf (stderr, "\r\nWelcome, %s\r\n", _xuname);
 }
 
-char *login_name(void)
+char *runame(void)
 {
-  return username;
+  return _runame;
 }
