@@ -295,7 +295,7 @@ void child_load(void)
 
   errno = 0;
   if (ptrace(PTRACE_TRACEME, NULL, NULL, NULL) == -1) {
-    perror("ptrace traceme");
+    errout("ptrace traceme");
     _exit(-1);
   }
 
@@ -311,7 +311,7 @@ void child_load(void)
       }
     else
       {
-	perror("\r\nchild openat"); fputc('\r', stderr);
+	errout("child openat");
 	_exit(-1);
       }
 
@@ -323,7 +323,7 @@ void child_load(void)
   signal(SIGCHLD, SIG_DFL);
 
   fexecve(fd, currjob->proc.argv, currjob->proc.env);
-  perror("fexecve"); fputc('\r', stderr);
+  errout("fexecve");
   _exit(-1);
 }
 
