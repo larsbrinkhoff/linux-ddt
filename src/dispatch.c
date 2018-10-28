@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <termios.h>
 #include <ctype.h>
 #include "term.h"
 #include "ccmd.h"
@@ -165,6 +166,12 @@ static void raid (void)
   done = 1;
 }
 
+static void start (void)
+{
+  go(prefix);
+  done = 1;
+}
+
 static void print_args (void)
 {
   fprintf (stderr, "\n\rArgs: %s\r\n", prefix);
@@ -225,6 +232,7 @@ void dispatch_init (void)
 
   plain[':'] = colon;
   alt[':'] = colon;
+  alt['g'] = start;
   alt['j'] = select_job;
   alt['u'] = login;
   alt['v'] = raid;

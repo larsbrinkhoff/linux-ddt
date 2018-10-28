@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <termios.h>
 #include "jobs.h"
 
 char *_runame = 0;
@@ -10,6 +11,7 @@ char *_msname = 0;
 
 void logout (char *ignore)
 {
+  fputs("\r\n", stderr);
   if (_runame)
     {
       massacre(NULL);

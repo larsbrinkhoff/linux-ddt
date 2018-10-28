@@ -1,19 +1,36 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/ptrace.h>
 #include <errno.h>
+#include <termios.h>
 #include "jobs.h"
 #include "user.h"
+#include "term.h"
 
 #define MAXJOBS 8
-#define MAX_ARGS 256
+#define MAXARGS 256
 
 struct job jobs[MAXJOBS] = { 0 };
 struct job *jobsend = &jobs[MAXJOBS];
 struct job *currjob = 0;
+struct job *fg = 0;
+
+static int pfd1[2], pfd2[2];
+
+void jobs_init(void)
+{
+  if (pipe(pfd1) < 0 || pipe(pfd2) < 0) {
+    fputs("failed creating pipes\r\n", stderr);
+    exit(1);
+  }
+}
+
 
 static struct job *getjob(char *jname)
 {
@@ -41,10 +58,8 @@ static char getopenslot(void)
 
 void set_currjname (char *jname)
 {
-  if (currjob->jname)
-    free(currjob->jname);
+  if (currjob->jname) free(currjob->jname);
   currjob->jname = strdup(jname);
-  fputs("\r\n", stderr);
 }
 
 void show_currjob (char *arg)
@@ -57,7 +72,7 @@ void show_currjob (char *arg)
 	list_currjob();
     }
   else if (*arg)
-    fprintf(stderr, "\r\nWould set self name\r\n");
+    fputs("Would set self name\r\n", stderr);
 }
 
 void list_currjob(void)
@@ -107,9 +122,14 @@ void job(char *jname)
       j->jcl = NULL;
       j->state = '-';
       j->slot = slot;
+      j->tmode = def_termios;
       j->proc.prog = NULL;
-      j->proc.argv = NULL;
-      j->proc.env = NULL;
+      j->proc.argv = malloc(sizeof(char *) * 2);
+      j->proc.argv[0] = NULL;
+      j->proc.argv[1] = NULL;
+      j->proc.env = malloc(sizeof(char *) * 2);
+      j->proc.env[0] = NULL;
+      j->proc.env[1] = NULL;
       j->proc.pid = 0;
       j->proc.status = 0;
       j->proc.dirfd = -1;
@@ -126,16 +146,30 @@ static void free_job(struct job *j)
   if (j->jcl) free(j->jcl);
   if (j->proc.prog) free(j->proc.prog);
   if (j->proc.argv) free(j->proc.argv);
-  if (j->proc.env) free(j->proc.env);
+  // if (j->proc.env) free(j->proc.env);
   j->state = 0;
 }
 
 void kill_job(struct job *j)
 {
-  if (j->state != '-')
+  int status;
+  switch (j->state)
     {
-      fprintf(stderr, "\r\nCan't do that yet.\r\n");
-      return;
+    case '-':
+      break;
+    case '~':
+    case 'p':
+      ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
+    case 'r':
+      errno = 0;
+      if (kill(j->proc.pid, SIGTERM) == -1)
+      	perror("kill");
+      else
+      	if (waitpid(j->proc.pid, &status, WUNTRACED) == -1)
+	  perror("waitpid");
+      break;
+    default:
+      fputs("\r\nCan't do that yet.\r\n", stderr);
     }
   free_job(j);
 }
@@ -156,7 +190,7 @@ void kill_currjob(char *arg)
     }
   else
     {
-      fprintf(stderr, "\r\nPrompt login? here.\r\n");
+      fputs("\r\nPrompt login? here.\r\n", stderr);
     }
 }
 
@@ -166,7 +200,6 @@ void massacre(char *arg)
     if (j->state)
       kill_job(j);
   currjob = 0;
-  fputs("\r\n", stderr);
 }
 
 void jclprt(char *notused)
@@ -189,91 +222,330 @@ void jcl(char *argstr)
 {
   if (!currjob)
     {
-      fprintf(stderr, "\r\nTried to set self jcl\r\n");
+      fputs("\r\nTried to set self jcl\r\n", stderr);
       return;
     }
 
   if (currjob->jcl) free(currjob->jcl);
   if (currjob->proc.argv) {
-    char **v = currjob->proc.argv;
-    while (*v)
-      {
-	free(*v);
-	v++;
-      }
+    for (char **p = currjob->proc.argv; *p; p++)
+      free(*p);
     free(currjob->proc.argv);
   }
 
   char *buf;
   if ((buf = (char *)malloc(strlen(argstr))) == NULL)
     {
-      fprintf(stderr, "\r\nmalloc fail\r\n");
+      fputs("\r\nmalloc fail\r\n", stderr);
       return;
     }
   strcpy(buf, argstr);
-  if ((currjob->proc.argv = malloc(MAX_ARGS * sizeof(char **))) == NULL)
+  if ((currjob->proc.argv = malloc(MAXARGS * sizeof(char **))) == NULL)
     {
-      fprintf(stderr, "\r\nmalloc fail\r\n");
+      fputs("\r\nmalloc fail\r\n", stderr);
       return;
     }
 
   int argc = 1;
   currjob->proc.argv[argc++] = strtok(buf, " \t");
-  while (argc < MAX_ARGS
+  while (argc < MAXARGS
 	 && ((currjob->proc.argv[argc] = strtok(NULL, " \t")) != NULL))
     currjob->proc.argv[++argc] == NULL;
   fputs("\r\n", stderr);
 }
 
+static inline int tell_parent(void)
+{
+  return (write(pfd2[1], "c", 1) != 1);
+}
+
+static inline int wait_parent(void)
+{
+  char	c;
+
+  return ((read(pfd1[0], &c, 1) == 1) || (c == 'p'));
+}
+
+static inline int tell_child(void)
+{
+  return (write(pfd1[1], "p", 1) != 1);
+}
+
+static inline int wait_child(void)
+{
+  char	c;
+
+  return ((read(pfd2[0], &c, 1) == 1) && (c == 'c'));
+}
+
 void child_load(void)
 {
-  fprintf(stderr, "\r\nchild loading %s\r\n", currjob->proc.prog);
-  _exit(1);
+  tell_parent();
+  wait_parent();
+
+  errno = 0;
+  if (ptrace(PTRACE_TRACEME, NULL, NULL, NULL) == -1) {
+    perror("ptrace traceme");
+    _exit(-1);
+  }
+
+  int fd;
+
+  errno = 0;
+  while ((fd = openat(AT_FDCWD, currjob->proc.prog,
+		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      {
+	perror("\r\nchild openat"); fputc('\r', stderr);
+	_exit(-1);
+      }
+
+  signal(SIGINT, SIG_DFL);
+  signal(SIGQUIT, SIG_DFL);
+  signal(SIGTSTP, SIG_DFL);
+  signal(SIGTTIN, SIG_DFL);
+  signal(SIGTTOU, SIG_DFL);
+  signal(SIGCHLD, SIG_DFL);
+
+  fexecve(fd, currjob->proc.argv, currjob->proc.env);
+  perror("fexecve"); fputc('\r', stderr);
+  _exit(-1);
 }
 
 void load(char *name)
 {
   if (!runame())
     {
-      fprintf(stderr, "\r\n(Please Log In)\r\n\r\n:kill\r\n");
+      fputs("\r\n(Please Log In)\r\n\r\n:kill\r\n", stderr);
       return;
     }
 
   if (!currjob)
     {
-      fprintf(stderr, "\r\nno current job\r\n");
+      fputs("\r\nno current job\r\n", stderr);
       return;
     }
 
   if (currjob->state != '-')
     {
-      fprintf(stderr, "\r\nJob already loaded\r\n");
+      fputs("\r\nJob already loaded\r\n", stderr);
       return;
     }
+
+  if (currjob->proc.prog) free(currjob->proc.prog);
+  currjob->proc.prog = strdup(name);
+  if (currjob->proc.argv[0]) free(currjob->proc.argv[0]);
+  currjob->proc.argv[0] = strdup(name);
 
   errno = 0;
-  pid_t child = fork();
+  pid_t childpid = fork();
 
-  if (child == -1)
+  if (childpid == -1)
     {
-      fprintf(stderr, "\r\nfork failed\r\n");
+      fputs("\r\nfork failed\r\n", stderr);
       return;
     }
 
-  if (!child)
+  if (!childpid)
     child_load();
 
+  tell_child();
+  wait_child();
+
   int status = 0;
-  waitpid(child, &status, 0);
-  if (WIFEXITED(status) || WIFSIGNALED(status))
+  waitpid(childpid, &status, 0);
+  if (WIFEXITED(status))
+    fprintf(stderr, "child exec failed. status=%d", WEXITSTATUS(status));
+  else if (WIFSIGNALED(status))
+    fprintf(stderr, "\r\nchild killed. signal=%d", WTERMSIG(status));
+  else if (WIFSTOPPED(status))
     {
-      fprintf(stderr, "\r\nchild exec failed: %d\r\n", status);
-      return;
+      currjob->proc.pid = childpid;
+      setpgid(childpid, currjob->proc.pid);
+      currjob->state = '~';
     }
 
-  currjob->proc.pid = child;
-  setpgid(child, currjob->proc.pid);
-  currjob->state = '~';
-
   fputs("\r\n", stderr);
+}
+
+int fgwait(void)
+{
+  int status;
+  
+  if (!fg)
+    return 0;
+  
+  waitpid(fg->proc.pid, &status, WUNTRACED);
+  if (WIFEXITED(status))
+    {
+      if (WEXITSTATUS(status))
+	fprintf(stderr, "\r\n:exit %d\r\n", WEXITSTATUS(status));
+      free_job(fg);
+    }
+  else if (WIFSIGNALED(status))
+    {
+      fprintf(stderr, "\r\n:kill %d\r\n", WTERMSIG(status));
+      free_job(fg);
+    }
+  else if (WIFSTOPPED(status))
+    {
+      fprintf(stderr, "\r\n%s stopped. signal=%d\r\n", fg->jname, WSTOPSIG(status));
+      fg->state = 'p';
+    }
+  else
+    fprintf(stderr, "\r\nfgwait status=%d\r\n", status);
+
+  fg = 0;
+  tcgetattr(0, &(currjob->tmode));
+  tcsetpgrp(0, getpid());
+  term_raw();
+
+  return 1;
+}
+
+void check_jobs(void)
+{
+  pid_t child;
+  int status;
+
+  errno = 0;
+  while ((child = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0)
+    {
+      for (struct job *j = jobs; j < jobsend; j++)
+	{
+	  if (j->proc.pid == child)
+	    {
+	      if (WIFEXITED(status))
+		{
+		  fprintf(stderr, ":exit %d %s$j\r\n", WEXITSTATUS(status), j->jname);
+		  free_job(j);
+		}
+	      else if (WIFSIGNALED(status))
+		{
+		  fprintf(stderr, ":kill %d %s$j\r\n", WTERMSIG(status), j->jname);
+		  free_job(j);
+		}
+	      else if (WIFSTOPPED(status))
+		{
+		  fprintf(stderr, "%s stopped. signal=%d\r\n", j->jname, WSTOPSIG(status));
+		  j->state = 'p';
+		}
+	      else
+		fprintf(stderr, "fgwait status=%d\r\n", status);
+
+	      break;
+	    }
+	}
+    }
+  if (child == -1 && errno != ECHILD)
+    {
+      perror("checkjobs waitpid");
+    }
+}
+
+void contin(char *unused)
+{
+  if (!currjob)
+    fputs(" job? ", stderr);
+  else
+    switch (currjob->state)
+      {
+      case '-':
+      case '~':
+	fputs(" job never started? ", stderr);
+	break;
+      case 'p':
+	currjob->state = 'r';
+	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
+      case 'r':
+	tcsetpgrp(0, currjob->proc.pid);
+	tcsetattr(0, TCSADRAIN, &(currjob->tmode));
+	fg = currjob;
+	break;
+      default:
+	fprintf(stderr, " unknown state %d? ", currjob->state);
+      }
+}
+
+void proced(char *unused)
+{
+  if (!currjob)
+    fputs(" job? ", stderr);
+  else
+    switch (currjob->state)
+      {
+      case '-':
+      case '~':
+	fputs(" job never started? ", stderr);
+	break;
+      case 'p':
+	currjob->state = 'r';
+	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
+      case 'r':
+ 	break;
+      default:
+	fprintf(stderr, " unknown state %d? ", currjob->state);
+      }
+}
+
+void go(char *addr)
+{
+  fputs("\r\n", stderr);
+  if (addr && *addr)
+    fprintf(stderr, "Address Prefix for go: %s\r\n", addr);
+  else if (!currjob)
+    fputs(" job? ", stderr);
+  else
+    switch (currjob->state)
+      {
+      case '-':
+	fputs(" no start addr? ", stderr);
+	break;
+      case '~':
+      case 'p':
+	tcsetpgrp(0, currjob->proc.pid);
+	tcsetattr(0, TCSADRAIN, &(currjob->tmode));
+	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
+	fg = currjob;
+	currjob->state = 'r';
+	break;
+      case 'r':
+	tcsetpgrp(0, currjob->proc.pid);
+	tcsetattr(0, TCSADRAIN, &(currjob->tmode));
+	fg = currjob;
+	break;
+      default:
+	fprintf(stderr, " unknown state %d? ", currjob->state);
+      }
+}
+
+void gzp(char *addr)
+{
+  fputs("\r\n", stderr);
+  if (addr && *addr)
+    fprintf(stderr, "Address Prefix for gzp: %s\r\n", addr);
+  else if (!currjob)
+    fputs(" job? ", stderr);
+  else
+    switch (currjob->state)
+      {
+      case '-':
+	fputs(" no start addr? ", stderr);
+	break;
+      case '~':
+      case 'p':
+	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
+	currjob->state = 'r';
+	break;
+      case 'r':
+	fputs(" already running? ", stderr);
+	break;
+      default:
+	fprintf(stderr, " unknown state %d? ", currjob->state);
+      }
 }

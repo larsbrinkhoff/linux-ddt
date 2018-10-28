@@ -5,12 +5,12 @@
 #include <sys/types.h>
 #include <signal.h>
 
-static struct termios old_termios;
+struct termios def_termios;
 static struct termios new_termios;
 
 void term_restore (void)
 {
-  tcsetattr (0, TCSANOW, &old_termios);
+  tcsetattr (0, TCSADRAIN, &def_termios);
 }
 
 void term_raw (void)
@@ -47,9 +47,9 @@ void term_init (void)
     }
   tcsetpgrp(0, pgid);
 
-  tcgetattr (0, &old_termios);
+  tcgetattr (0, &def_termios);
 
-  new_termios = old_termios;
+  new_termios = def_termios;
   cfmakeraw (&new_termios);
   term_raw ();
 }
