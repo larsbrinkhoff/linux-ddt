@@ -13,10 +13,10 @@ clean:
 clobber: clean
 	$(RM) $(PROGS)
 
-main.o: main.c term.h dispatch.h jobs.h
+main.o: main.c term.h dispatch.h jobs.h files.h
 dispatch.o: dispatch.c term.h ccmd.h jobs.h user.h
 term.o: term.c
-ccmd.o: ccmd.c ccmd.h jobs.h user.h
+ccmd.o: ccmd.c ccmd.h jobs.h user.h files.h
 jobs.o: jobs.c jobs.h user.h term.h
 user.o: user.c jobs.h
-files.o: files.c files.h
+files.o: files.c files.h jobs.h

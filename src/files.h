@@ -4,3 +4,7 @@ struct file {
   int dirfd;
   int fd;
 };
+
+void files_init(void);
+
+void delete_file(char *name);

@@ -8,6 +8,7 @@
 #include "ccmd.h"
 #include "jobs.h"
 #include "user.h"
+#include "files.h"
 
 enum sysdir { SYS, SYS1, SYS2, SYS3 };
 #define QTY_SYSFDS 4
@@ -33,6 +34,7 @@ struct builtin builtins[] =
   {
    {"clear", "", "clear screen [^L]", clear},
    {"continue", "", "continue program, giving job TTY [$p]", contin},
+   {"delete", "<file>", "delete file [^o]", delete_file},
    {"go", "<start addr (opt)>", "start inferior [$g]", go},
    {"gzp", "<start addr (opt)>", "start job without tty [$g^z^p]", gzp},
    {"help", "", "print out basic information", help},
