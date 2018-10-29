@@ -2,12 +2,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <termios.h>
+#include "files.h"
 #include "jobs.h"
 
 char *_runame = 0;
 char *_xuname = 0;
-char *_hsname = 0;
-char *_msname = 0;
 
 void logout (char *ignore)
 {
@@ -24,10 +23,7 @@ void logout (char *ignore)
 	}
     }
   else
-    {
-      fputs("\r\n", stderr);
-      exit (0);
-    }
+    exit (0);
 }
 
 void login_as (char *name)

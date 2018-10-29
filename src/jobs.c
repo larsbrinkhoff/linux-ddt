@@ -9,6 +9,7 @@
 #include <sys/ptrace.h>
 #include <errno.h>
 #include <termios.h>
+#include "files.h"
 #include "jobs.h"
 #include "user.h"
 #include "term.h"
@@ -21,6 +22,7 @@ struct job *jobsend = &jobs[MAXJOBS];
 struct job *currjob = 0;
 struct job *fg = 0;
 
+static char errstr[64];
 static int pfd1[2], pfd2[2];
 
 void jobs_init(void)
@@ -31,6 +33,15 @@ void jobs_init(void)
   }
 }
 
+void errout(char *arg)
+{
+  int errno_ = errno;
+  errstr[0] = 0;
+  char *e = strerror_r(errno_, errstr, 64);
+  if (arg)
+    fprintf(stderr, " %s:", arg);
+  fprintf(stderr, " %s\r\n", e);
+}
 
 static struct job *getjob(char *jname)
 {
@@ -123,7 +134,10 @@ void job(char *jname)
       j->state = '-';
       j->slot = slot;
       j->tmode = def_termios;
-      j->proc.prog = NULL;
+      j->proc.ufname.name = NULL;
+      j->proc.ufname.devfd = -1;
+      j->proc.ufname.dirfd = -1;
+      j->proc.ufname.fd = -1;
       j->proc.argv = malloc(sizeof(char *) * 2);
       j->proc.argv[0] = NULL;
       j->proc.argv[1] = NULL;
@@ -132,7 +146,6 @@ void job(char *jname)
       j->proc.env[1] = NULL;
       j->proc.pid = 0;
       j->proc.status = 0;
-      j->proc.dirfd = -1;
       currjob = j;
       fputs("\r\n!\r\n", stderr);
     }
@@ -144,7 +157,7 @@ static void free_job(struct job *j)
 {
   if (j->jname) free(j->jname);
   if (j->jcl) free(j->jcl);
-  if (j->proc.prog) free(j->proc.prog);
+  if (j->proc.ufname.name) free(j->proc.ufname.name);
   if (j->proc.argv) free(j->proc.argv);
   // if (j->proc.env) free(j->proc.env);
   j->state = 0;
@@ -163,10 +176,10 @@ void kill_job(struct job *j)
     case 'r':
       errno = 0;
       if (kill(j->proc.pid, SIGTERM) == -1)
-      	perror("kill");
+	errout("kill");
       else
       	if (waitpid(j->proc.pid, &status, WUNTRACED) == -1)
-	  perror("waitpid");
+	  errout("waitpid");
       break;
     default:
       fputs("\r\nCan't do that yet.\r\n", stderr);
@@ -285,14 +298,14 @@ void child_load(void)
 
   errno = 0;
   if (ptrace(PTRACE_TRACEME, NULL, NULL, NULL) == -1) {
-    perror("ptrace traceme");
+    errout("ptrace traceme");
     _exit(-1);
   }
 
   int fd;
 
   errno = 0;
-  while ((fd = openat(AT_FDCWD, currjob->proc.prog,
+  while ((fd = openat(AT_FDCWD, currjob->proc.ufname.name,
 		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
     if (errno == EINTR)
       {
@@ -301,7 +314,7 @@ void child_load(void)
       }
     else
       {
-	perror("\r\nchild openat"); fputc('\r', stderr);
+	errout("child openat");
 	_exit(-1);
       }
 
@@ -313,7 +326,7 @@ void child_load(void)
   signal(SIGCHLD, SIG_DFL);
 
   fexecve(fd, currjob->proc.argv, currjob->proc.env);
-  perror("fexecve"); fputc('\r', stderr);
+  errout("fexecve");
   _exit(-1);
 }
 
@@ -337,8 +350,8 @@ void load(char *name)
       return;
     }
 
-  if (currjob->proc.prog) free(currjob->proc.prog);
-  currjob->proc.prog = strdup(name);
+  if (currjob->proc.ufname.name) free(currjob->proc.ufname.name);
+  currjob->proc.ufname.name = strdup(name);
   if (currjob->proc.argv[0]) free(currjob->proc.argv[0]);
   currjob->proc.argv[0] = strdup(name);
 
@@ -444,7 +457,7 @@ void check_jobs(void)
     }
   if (child == -1 && errno != ECHILD)
     {
-      perror("checkjobs waitpid");
+      errout("checkjobs waitpid");
     }
 }
 

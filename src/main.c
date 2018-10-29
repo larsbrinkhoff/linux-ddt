@@ -2,6 +2,7 @@
 #include <termios.h>
 #include "term.h"
 #include "dispatch.h"
+#include "files.h"
 #include "jobs.h"
 
 static void cleanup (void)
@@ -11,6 +12,7 @@ static void cleanup (void)
 
 int main (int argc, char **argv)
 {
+  files_init();
   term_init ();
   atexit (cleanup);
   jobs_init ();

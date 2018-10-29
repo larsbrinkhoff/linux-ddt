@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include "term.h"
 #include "ccmd.h"
+#include "files.h"
 #include "jobs.h"
 #include "user.h"
 
@@ -126,6 +127,12 @@ static char *suffix (void)
     else
       fputc(BELL, stderr);
 
+  while (n--)
+    if (string[n] == ' ')
+      string[n] = 0;
+    else
+      break;
+
   return string;
 }
 
@@ -237,8 +244,6 @@ void dispatch_init (void)
   alt['u'] = login;
   alt['v'] = raid;
   alt['?'] = print_args;
-
-  init_ccmd();
 }
 
 static void dispatch (int ch)
