@@ -244,8 +244,6 @@ void dispatch_init (void)
   alt['u'] = login;
   alt['v'] = raid;
   alt['?'] = print_args;
-
-  init_ccmd();
 }
 
 static void dispatch (int ch)
