@@ -160,7 +160,11 @@ static void free_job(struct job *j)
   if (j->proc.ufname.name) free(j->proc.ufname.name);
   if (j->proc.argv) free(j->proc.argv);
   // if (j->proc.env) free(j->proc.env);
+  j->jname = 0;
+  j->jcl = 0;
   j->state = 0;
+  j->proc.ufname.name = 0;
+  j->proc.argv = 0;
 }
 
 void kill_job(struct job *j)
