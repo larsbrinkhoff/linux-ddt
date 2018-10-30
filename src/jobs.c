@@ -115,7 +115,7 @@ void listj(char *arg)
 	      j->jname, j->state, j->slot);
 }
 
-void job(char *jname)
+void select_job(char *jname)
 {
   struct job *j;
   char slot;

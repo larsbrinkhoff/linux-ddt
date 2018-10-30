@@ -22,7 +22,7 @@ void check_jobs(void);
 void list_currjob(void);
 void next_job(void);
 
-void job(char *jname);
+void select_job(char *jname);
 void listj(char *);
 void show_currjob(char *arg);
 void kill_currjob(char *);

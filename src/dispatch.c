@@ -190,7 +190,7 @@ static void formfeed (void)
   fputs (prefix, stderr);
 }
 
-static void select_job (void)
+static void job (void)
 {
   if (altmodes > 1)
     {
@@ -203,7 +203,7 @@ static void select_job (void)
     }
 
   if (nprefix)
-    job(prefix);
+    select_job(prefix);
   else
     next_job();
 
@@ -240,7 +240,7 @@ void dispatch_init (void)
   plain[':'] = colon;
   alt[':'] = colon;
   alt['g'] = start;
-  alt['j'] = select_job;
+  alt['j'] = job;
   alt['u'] = login;
   alt['v'] = raid;
   alt['?'] = print_args;

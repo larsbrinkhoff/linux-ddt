@@ -36,7 +36,7 @@ struct builtin builtins[] =
    {"help", "", "print out basic information", help},
    {"jcl", "<line>", "set job control string", jcl},
    {"jclprt", "", "print the job control strong", jclprt},
-   {"job", "", "create or select job [$j]", job},
+   {"job", "", "create or select job [$j]", select_job},
    {"kill", "", "kill current job [$^x.]", kill_currjob},
    {"listj", "", "list jobs [$$v]", listj},
    {"load", "<file>", "load file into core [$l]", load},
