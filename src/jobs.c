@@ -163,7 +163,7 @@ static void free_job(struct job *j)
   j->jname = 0;
   j->jcl = 0;
   j->state = 0;
-  j->ufsname.name = 0;
+  j->proc.ufname.name = 0;
   j->proc.argv = 0;
 }
 
