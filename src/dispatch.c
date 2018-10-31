@@ -26,7 +26,6 @@ static void (*alt[256]) (void);
 
 #define BELL 07
 #define FORMFEED 014
-#define CTRL_Q 021
 #define ALTMODE 033
 #define RUBOUT 0177
 #define CTRL_(c)	((c)-64)
@@ -99,7 +98,7 @@ static char *suffix (void)
 	else
 	  switch (ch)
 	    {
-	    case CTRL_Q:	/* quote next char */
+	    case CTRL_('Q'):	/* quote next char */
 	      if (n < SUFFIX_MAXBUF)
 		{
 		  fputs("^Q", stderr);
