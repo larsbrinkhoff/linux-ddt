@@ -29,6 +29,7 @@ static void (*alt[256]) (void);
 #define CTRL_Q 021
 #define ALTMODE 033
 #define RUBOUT 0177
+#define CTRL_(c)	((c)-64)
 
 static void echo (int ch)
 {
@@ -210,6 +211,16 @@ static void job (void)
   done = 1;
 }
 
+static void cont (void)
+{
+  contin(NULL);
+}
+
+static void proceed (void)
+{
+  proced(NULL);
+}
+
 void dispatch_init (void)
 {
   int i;
@@ -232,6 +243,7 @@ void dispatch_init (void)
     }
 
   plain[FORMFEED] = formfeed;
+  plain[CTRL_('P')] = proceed;
   plain[ALTMODE] = altmode;
   alt[ALTMODE] = altmode;
   plain[RUBOUT] = rubout;
@@ -241,6 +253,7 @@ void dispatch_init (void)
   alt[':'] = colon;
   alt['g'] = start;
   alt['j'] = job;
+  alt['p'] = cont;
   alt['u'] = login;
   alt['v'] = raid;
   alt['?'] = print_args;
