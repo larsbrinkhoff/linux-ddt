@@ -25,6 +25,7 @@ static void (*plain[256]) (void);
 static void (*alt[256]) (void);
 
 #define BELL 07
+#define BACKSPACE 010
 #define FORMFEED 014
 #define ALTMODE 033
 #define RUBOUT 0177
@@ -236,6 +237,26 @@ static void stop (void)
   fputs("Would)   show stopaddr   ", stderr);
 }
 
+void backspace (void)
+{
+  if (altmodes)
+    {
+      fputs("\r\nWould $^h\r\n", stderr);
+      done = 1;
+      return;
+    }
+  if (nprefix)
+    {
+      fprintf(stderr, "\r\nWould ^h with %s\r\n", prefix);
+      done = 1;
+      return;
+    }
+  struct job *j = currjob;
+  next_job();
+  if (currjob != j)
+    contin(NULL);
+}
+
 void dispatch_init (void)
 {
   int i;
@@ -257,6 +278,7 @@ void dispatch_init (void)
       alt[i] = arg;
     }
 
+  plain[BACKSPACE] = backspace;
   plain[FORMFEED] = formfeed;
   plain[CTRL_('P')] = proceed;
   plain[CTRL_('X')] = stop;
