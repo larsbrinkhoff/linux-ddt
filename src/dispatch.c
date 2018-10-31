@@ -225,16 +225,23 @@ static void proceed (void)
 
 static void stop (void)
 {
-  if (altmodes)
+  if (altmodes > 1)
     {
-      fputs("Would $^x\r\n", stderr);
-      done = 1;
-      return;
+      fputs("\r\nWould $$^x\r\n", stderr);
     }
-
-  fputs("\r\n", stderr);
-  stop_currjob();
-  fputs("Would)   show stopaddr   ", stderr);
+  else if (altmodes == 1)
+    {
+      if (nprefix)
+	fprintf(stderr, "\r\nWould $^x with %s\r\n", prefix);
+      else
+	kill_currjob(NULL);
+    }
+  else
+    {
+      stop_currjob();
+      fputs("Would)   show stopaddr   ", stderr);
+    }
+  done = 1;
 }
 
 void backspace (void)
@@ -282,6 +289,7 @@ void dispatch_init (void)
   plain[FORMFEED] = formfeed;
   plain[CTRL_('P')] = proceed;
   plain[CTRL_('X')] = stop;
+  alt[CTRL_('X')] = stop;
   plain[ALTMODE] = altmode;
   alt[ALTMODE] = altmode;
   plain[RUBOUT] = rubout;
