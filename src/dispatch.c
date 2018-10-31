@@ -227,7 +227,8 @@ static void stop (void)
 {
   if (altmodes > 1)
     {
-      fputs("\r\nWould $$^x\r\n", stderr);
+      fputs("\r\n", stderr);
+      massacre(NULL);
     }
   else if (altmodes == 1)
     {
