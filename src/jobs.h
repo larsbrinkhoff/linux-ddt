@@ -21,6 +21,7 @@ int fgwait(void);
 void check_jobs(void);
 void list_currjob(void);
 void next_job(void);
+void stop_currjob(void);
 
 void select_job(char *jname);
 void listj(char *);

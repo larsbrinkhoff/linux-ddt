@@ -214,11 +214,27 @@ static void job (void)
 static void cont (void)
 {
   contin(NULL);
+  done = 1;
 }
 
 static void proceed (void)
 {
   proced(NULL);
+  done = 1;
+}
+
+static void stop (void)
+{
+  if (altmodes)
+    {
+      fputs("Would $^x\r\n", stderr);
+      done = 1;
+      return;
+    }
+
+  fputs("\r\n", stderr);
+  stop_currjob();
+  fputs("Would)   show stopaddr   ", stderr);
 }
 
 void dispatch_init (void)
@@ -244,6 +260,7 @@ void dispatch_init (void)
 
   plain[FORMFEED] = formfeed;
   plain[CTRL_('P')] = proceed;
+  plain[CTRL_('X')] = stop;
   plain[ALTMODE] = altmode;
   alt[ALTMODE] = altmode;
   plain[RUBOUT] = rubout;
