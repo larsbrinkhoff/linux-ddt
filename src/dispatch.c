@@ -25,10 +25,11 @@ static void (*plain[256]) (void);
 static void (*alt[256]) (void);
 
 #define BELL 07
+#define BACKSPACE 010
 #define FORMFEED 014
-#define CTRL_Q 021
 #define ALTMODE 033
 #define RUBOUT 0177
+#define CTRL_(c)	((c)-64)
 
 static void echo (int ch)
 {
@@ -98,7 +99,7 @@ static char *suffix (void)
 	else
 	  switch (ch)
 	    {
-	    case CTRL_Q:	/* quote next char */
+	    case CTRL_('Q'):	/* quote next char */
 	      if (n < SUFFIX_MAXBUF)
 		{
 		  fputs("^Q", stderr);
@@ -190,7 +191,7 @@ static void formfeed (void)
   fputs (prefix, stderr);
 }
 
-static void select_job (void)
+static void job (void)
 {
   if (altmodes > 1)
     {
@@ -203,11 +204,92 @@ static void select_job (void)
     }
 
   if (nprefix)
-    job(prefix);
+    select_job(prefix);
   else
     next_job();
 
   done = 1;
+}
+
+static void cont (void)
+{
+  contin(NULL);
+  done = 1;
+}
+
+static void proceed (void)
+{
+  proced(NULL);
+  done = 1;
+}
+
+static void stop (void)
+{
+  if (altmodes > 1)
+    {
+      fputs("\r\n", stderr);
+      massacre(NULL);
+    }
+  else if (altmodes == 1)
+    {
+      if (nprefix)
+	fprintf(stderr, "\r\nWould $^x with %s\r\n", prefix);
+      else
+	kill_currjob(NULL);
+    }
+  else
+    {
+      stop_currjob();
+      fputs("Would)   show stopaddr   ", stderr);
+    }
+  done = 1;
+}
+
+void backspace (void)
+{
+  if (altmodes)
+    {
+      fputs("\r\nWould $^h\r\n", stderr);
+      done = 1;
+      return;
+    }
+  if (nprefix)
+    {
+      fprintf(stderr, "\r\nWould ^h with %s\r\n", prefix);
+      done = 1;
+      return;
+    }
+  struct job *j = currjob;
+  next_job();
+  if (currjob != j)
+    contin(NULL);
+}
+
+void flushin (void)
+{
+  fputs(" xxx? ", stderr);
+  prefix[0] = nprefix = 0;
+}
+
+void load (void)
+{
+  fputs(" ", stderr);
+  char *cmdline = suffix();
+  if (cmdline != NULL)
+    {
+      while (*cmdline == ' ')
+	cmdline++;
+      load_prog(cmdline);
+    }
+  else
+    fputs("?? ", stderr);
+  done = 1;
+}
+
+static void quotech (void)
+{
+  character = term_read();
+  echo (character);
 }
 
 void dispatch_init (void)
@@ -231,7 +313,13 @@ void dispatch_init (void)
       alt[i] = arg;
     }
 
+  plain[CTRL_('D')] = flushin;
+  plain[BACKSPACE] = backspace;
   plain[FORMFEED] = formfeed;
+  plain[CTRL_('P')] = proceed;
+  plain[CTRL_('Q')] = quotech;
+  plain[CTRL_('X')] = stop;
+  alt[CTRL_('X')] = stop;
   plain[ALTMODE] = altmode;
   alt[ALTMODE] = altmode;
   plain[RUBOUT] = rubout;
@@ -240,7 +328,9 @@ void dispatch_init (void)
   plain[':'] = colon;
   alt[':'] = colon;
   alt['g'] = start;
-  alt['j'] = select_job;
+  alt['j'] = job;
+  alt['l'] = load;
+  alt['p'] = cont;
   alt['u'] = login;
   alt['v'] = raid;
   alt['?'] = print_args;
@@ -259,7 +349,7 @@ void prompt_and_execute (void)
 
   write (1, prompt, 1);
   altmodes = 0;
-  nprefix = 0;
+  prefix[0] = nprefix = 0;
   fn = plain;
 
   do

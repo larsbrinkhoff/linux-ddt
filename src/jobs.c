@@ -115,7 +115,7 @@ void listj(char *arg)
 	      j->jname, j->state, j->slot);
 }
 
-void job(char *jname)
+void select_job(char *jname)
 {
   struct job *j;
   char slot;
@@ -334,7 +334,7 @@ void child_load(void)
   _exit(-1);
 }
 
-void load(char *name)
+void load_prog(char *name)
 {
   if (!runame())
     {
@@ -491,6 +491,7 @@ void contin(char *unused)
 
 void proced(char *unused)
 {
+  fputs("\r\n", stderr);
   if (!currjob)
     fputs(" job? ", stderr);
   else
@@ -566,3 +567,21 @@ void gzp(char *addr)
 	fprintf(stderr, " unknown state %d? ", currjob->state);
       }
 }
+
+void stop_currjob(void)
+{
+  if (currjob)
+    {
+      int status;
+      errno = 0;
+      if (kill(currjob->proc.pid, SIGSTOP) == -1)
+	errout("sigstop");
+      else
+      	if (waitpid(currjob->proc.pid, &status, WUNTRACED) == -1)
+	  errout("waitpid");
+      currjob->state = 'p';
+    }
+  else
+    fputs(" job? ", stderr);
+}
+
