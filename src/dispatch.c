@@ -286,6 +286,12 @@ void load (void)
   done = 1;
 }
 
+static void quotech (void)
+{
+  character = term_read();
+  echo (character);
+}
+
 void dispatch_init (void)
 {
   int i;
@@ -311,6 +317,7 @@ void dispatch_init (void)
   plain[BACKSPACE] = backspace;
   plain[FORMFEED] = formfeed;
   plain[CTRL_('P')] = proceed;
+  plain[CTRL_('Q')] = quotech;
   plain[CTRL_('X')] = stop;
   alt[CTRL_('X')] = stop;
   plain[ALTMODE] = altmode;
