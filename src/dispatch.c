@@ -342,7 +342,7 @@ void prompt_and_execute (void)
 
   write (1, prompt, 1);
   altmodes = 0;
-  nprefix = 0;
+  prefix[0] = nprefix = 0;
   fn = plain;
 
   do
