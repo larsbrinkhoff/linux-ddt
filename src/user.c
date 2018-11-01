@@ -22,8 +22,7 @@ void logout (char *ignore)
 	  _xuname = 0;
 	}
     }
-  else
-    exit (0);
+  exit (0);
 }
 
 void login_as (char *name)
