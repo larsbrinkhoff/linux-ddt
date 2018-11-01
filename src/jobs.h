@@ -32,7 +32,7 @@ void set_currjname(char *jname);
 void jcl(char *argstr);
 void jclprt(char *);
 void massacre(char *);
-void load(char *name);
+void load_prog(char *name);
 void go(char *addr);
 void gzp(char *addr);
 void contin(char *);

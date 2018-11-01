@@ -334,7 +334,7 @@ void child_load(void)
   _exit(-1);
 }
 
-void load(char *name)
+void load_prog(char *name)
 {
   if (!runame())
     {

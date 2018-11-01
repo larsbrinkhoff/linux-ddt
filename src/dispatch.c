@@ -265,6 +265,27 @@ void backspace (void)
     contin(NULL);
 }
 
+void flushin (void)
+{
+  fputs(" xxx? ", stderr);
+  prefix[0] = nprefix = 0;
+}
+
+void load (void)
+{
+  fputs(" ", stderr);
+  char *cmdline = suffix();
+  if (cmdline != NULL)
+    {
+      while (*cmdline == ' ')
+	cmdline++;
+      load_prog(cmdline);
+    }
+  else
+    fputs("?? ", stderr);
+  done = 1;
+}
+
 void dispatch_init (void)
 {
   int i;
@@ -286,6 +307,7 @@ void dispatch_init (void)
       alt[i] = arg;
     }
 
+  plain[CTRL_('D')] = flushin;
   plain[BACKSPACE] = backspace;
   plain[FORMFEED] = formfeed;
   plain[CTRL_('P')] = proceed;
@@ -300,6 +322,7 @@ void dispatch_init (void)
   alt[':'] = colon;
   alt['g'] = start;
   alt['j'] = job;
+  alt['l'] = load;
   alt['p'] = cont;
   alt['u'] = login;
   alt['v'] = raid;
