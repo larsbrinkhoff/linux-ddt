@@ -13,6 +13,7 @@
 #include "jobs.h"
 #include "user.h"
 #include "term.h"
+#include "debugger.h"
 
 #define MAXJOBS 8
 #define MAXARGS 256
@@ -576,10 +577,13 @@ void stop_currjob(void)
       errno = 0;
       if (kill(currjob->proc.pid, SIGSTOP) == -1)
 	errout("sigstop");
+      else if (waitpid(currjob->proc.pid, &status, WUNTRACED) == -1)
+	errout("waitpid");
       else
-      	if (waitpid(currjob->proc.pid, &status, WUNTRACED) == -1)
-	  errout("waitpid");
-      currjob->state = 'p';
+	{
+	  currjob->state = 'p';
+	  typeout_pc(currjob);
+	}
     }
   else
     fputs(" job? ", stderr);

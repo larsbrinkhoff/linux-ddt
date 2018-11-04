@@ -225,22 +225,22 @@ static void proceed (void)
 
 static void stop (void)
 {
+  fputs("\r\n", stderr);
   if (altmodes > 1)
     {
-      fputs("\r\n", stderr);
       massacre(NULL);
     }
   else if (altmodes == 1)
     {
       if (nprefix)
-	fprintf(stderr, "\r\nWould $^x with %s\r\n", prefix);
+	fprintf(stderr, "Would $^x with %s\r\n", prefix);
       else
 	kill_currjob(NULL);
     }
   else
     {
       stop_currjob();
-      fputs("Would)   show stopaddr   ", stderr);
+      return;
     }
   done = 1;
 }
