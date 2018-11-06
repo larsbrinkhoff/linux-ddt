@@ -8,6 +8,7 @@
 #include "files.h"
 #include "jobs.h"
 #include "user.h"
+#include "debugger.h"
 
 #define PREFIX_MAXBUF 255
 #define SUFFIX_MAXBUF 255
@@ -292,6 +293,32 @@ static void quotech (void)
   echo (character);
 }
 
+static void step (void)
+{
+  if (!currjob)
+    {
+      fputs(" job? ", stderr);
+      return;
+    }
+
+  switch (currjob->state)
+    {
+    case 'r':
+      fputs(" job running? ", stderr);
+      break;
+    case '~':
+      fputs(" not started? ", stderr);
+      break;
+    case 'p':
+      fputs("\r\n", stderr);
+      step_job(currjob);
+      typeout_pc(currjob);
+      break;
+    default:
+      fputs(" not appropriate? ", stderr);
+    }
+}
+
 void dispatch_init (void)
 {
   int i;
@@ -316,6 +343,7 @@ void dispatch_init (void)
   plain[CTRL_('D')] = flushin;
   plain[BACKSPACE] = backspace;
   plain[FORMFEED] = formfeed;
+  plain[CTRL_('N')] = step;
   plain[CTRL_('P')] = proceed;
   plain[CTRL_('Q')] = quotech;
   plain[CTRL_('X')] = stop;
