@@ -336,23 +336,9 @@ void child_load(void)
   signal(SIGTTOU, SIG_DFL);
   signal(SIGCHLD, SIG_DFL);
 
-  int fd;
+  __asm__("int3");
 
-  errno = 0;
-  while ((fd = openat(AT_FDCWD, currjob->proc.ufname.name,
-		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
-    if (errno == EINTR)
-      {
-	errno = 0;
-	continue;
-      }
-    else
-      {
-	errout("child openat");
-	_exit(-1);
-      }
-
-  fexecve(fd, currjob->proc.argv, currjob->proc.env);
+  fexecve(currjob->proc.ufname.fd, currjob->proc.argv, currjob->proc.env);
   errout("fexecve");
   _exit(-1);
 }
@@ -382,6 +368,23 @@ void load_prog(char *name)
   if (currjob->proc.argv[0]) free(currjob->proc.argv[0]);
   currjob->proc.argv[0] = strdup(name);
 
+  int fd;
+
+  errno = 0;
+  while ((fd = openat(AT_FDCWD, currjob->proc.ufname.name,
+		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      {
+	errout("child openat");
+	return;
+      }
+  currjob->proc.ufname.fd = fd;
+
   errno = 0;
   pid_t childpid = fork();
 
@@ -394,13 +397,10 @@ void load_prog(char *name)
   if (!childpid)
     child_load();
 
-  tell_child();
   wait_child();
-
   if (ptrace(PTRACE_SEIZE, childpid, NULL, NULL) == -1)
     errout("ptrace seize");
-  if (ptrace(PTRACE_INTERRUPT, childpid, NULL, NULL) == -1)
-    errout("ptrace interrupt");
+  tell_child();
 
   int status = 0;
   waitpid(childpid, &status, 0);
