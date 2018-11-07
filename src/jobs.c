@@ -429,14 +429,13 @@ static void setfg(struct job *j)
     {
       tcsetpgrp(0, j->proc.pid);
       tcsetattr(0, TCSADRAIN, &(j->tmode));
-      fg = j;
     }
   else
     {
       tcsetpgrp(0, getpid());
       term_raw();
-      fg = 0;
     }
+  fg = j;
 }
 
 int fgwait(void)
