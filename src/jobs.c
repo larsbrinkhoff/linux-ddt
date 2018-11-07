@@ -176,21 +176,21 @@ static void jobwait(struct job *j)
   if (WIFEXITED(status))
     {
       if (WEXITSTATUS(status))
-	fprintf(stderr, "\r\n:exit %d\r\n", WEXITSTATUS(status));
+	fprintf(stderr, ":exit %d\r\n", WEXITSTATUS(status));
       free_job(j);
     }
   else if (WIFSIGNALED(status))
     {
-      fprintf(stderr, "\r\n:kill %d\r\n", WTERMSIG(status));
+      fprintf(stderr, ":kill %d\r\n", WTERMSIG(status));
       free_job(j);
     }
   else if (WIFSTOPPED(status))
     {
-      fprintf(stderr, "\r\n%s stopped. signal=%d\r\n", j->jname, WSTOPSIG(status));
+      fprintf(stderr, ":stop signal=%d\r\n", WSTOPSIG(status));
       j->state = 'p';
     }
   else
-    fprintf(stderr, "\r\nwait status=%d\r\n", status);
+    fprintf(stderr, " wait status=%d\r\n", status);
 }
 
 static int kill_job(struct job *j)
@@ -202,10 +202,10 @@ static int kill_job(struct job *j)
       break;
     case '~':
     case 'p':
-    case 'r':
       errno = 0;
       if (ptrace(PTRACE_DETACH, j->proc.pid, NULL, NULL) == -1)
 	errout("ptrace detach");
+    case 'r':
       errno = 0;
       if (kill(j->proc.pid, SIGTERM) == -1)
 	errout("kill");
@@ -222,6 +222,7 @@ void kill_currjob(char *arg)
 {
   if (currjob)
     {
+      fputs("\r\n", stderr);
       if (kill_job(currjob))
 	{
 	  jobwait(currjob);
@@ -230,10 +231,9 @@ void kill_currjob(char *arg)
 	  if ((slot = nextslot()) != -1)
 	    {
 	      currjob = &jobs[slot];
-	      fprintf(stderr, "\r\n %s$j", currjob->jname);
+	      fprintf(stderr, " %s$j\r\n", currjob->jname);
 	    }
 	}
-      fputs("\r\n", stderr);
     }
   else
     fputs("\r\nPrompt login? here.\r\n", stderr);
@@ -476,7 +476,8 @@ void check_jobs(void)
 		}
 	      else if (WIFSTOPPED(status))
 		{
-		  fprintf(stderr, "%s stopped. signal=%d\r\n", j->jname, WSTOPSIG(status));
+		  fprintf(stderr, ":stop signal=%d %s$j\r\n",
+			  WSTOPSIG(status), j->jname);
 		  j->state = 'p';
 		}
 	      else
@@ -492,6 +493,25 @@ void check_jobs(void)
     }
 }
 
+static void wrongstate(struct job *j)
+{
+  switch(j->state)
+    {
+    case '-':
+    case '~':
+      fputs(" job never started? ", stderr);
+      break;
+    case 'r':
+      fputs(" already running? ", stderr);
+      break;
+    case '\0':
+      fputs(" empty job? ", stderr);
+      break;
+    default:
+      fprintf(stderr, " unknown state %d? ", j->state);
+    }
+}
+
 void contin(char *unused)
 {
   if (!currjob)
@@ -499,70 +519,54 @@ void contin(char *unused)
   else
     switch (currjob->state)
       {
-      case '-':
-      case '~':
-	fputs(" job never started? ", stderr);
-	break;
       case 'p':
 	currjob->state = 'r';
 	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
       case 'r':
-	tcsetpgrp(0, currjob->proc.pid);
-	tcsetattr(0, TCSADRAIN, &(currjob->tmode));
-	fg = currjob;
 	fputs("\r\n", stderr);
+	setfg(currjob);
 	break;
       default:
-	fprintf(stderr, " unknown state %d? ", currjob->state);
+	wrongstate(currjob);
       }
 }
 
 void proced(char *unused)
 {
-  fputs("\r\n", stderr);
   if (!currjob)
     fputs(" job? ", stderr);
   else
     switch (currjob->state)
       {
-      case '-':
-      case '~':
-	fputs(" job never started? ", stderr);
-	break;
       case 'p':
 	currjob->state = 'r';
 	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
       case 'r':
+	fputs("\r\n", stderr);
  	break;
       default:
-	fprintf(stderr, " unknown state %d? ", currjob->state);
+	wrongstate(currjob);
       }
 }
 
 void go(char *addr)
 {
-  fputs("\r\n", stderr);
   if (addr && *addr)
-    fprintf(stderr, "Address Prefix for go: %s\r\n", addr);
+    fprintf(stderr, "\r\nAddress Prefix for go: %s\r\n", addr);
   else if (!currjob)
     fputs(" job? ", stderr);
   else
     switch (currjob->state)
       {
-      case '-':
-	fputs(" no start addr? ", stderr);
-	break;
       case '~':
       case 'p':
+	fputs("\r\n", stderr);
 	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
 	currjob->state = 'r';
 	setfg(currjob);
 	break;
-      case 'r':
-	fputs(" already running? ", stderr);
-	break;
       default:
-	fprintf(stderr, " unknown action for %d? ", currjob->state);
+	wrongstate(currjob);
       }
 }
 
@@ -576,19 +580,13 @@ void gzp(char *addr)
   else
     switch (currjob->state)
       {
-      case '-':
-	fputs(" no start addr? ", stderr);
-	break;
       case '~':
       case 'p':
 	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
 	currjob->state = 'r';
 	break;
-      case 'r':
-	fputs(" already running? ", stderr);
-	break;
       default:
-	fprintf(stderr, " unknown action for %d? ", currjob->state);
+	wrongstate(currjob);
       }
 }
 
