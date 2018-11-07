@@ -371,7 +371,7 @@ void load_prog(char *name)
   int fd;
 
   errno = 0;
-  while ((fd = openat(AT_FDCWD, currjob->proc.ufname.name,
+  while ((fd = openat(hsname.fd, currjob->proc.ufname.name,
 		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
     if (errno == EINTR)
       {
@@ -383,6 +383,8 @@ void load_prog(char *name)
 	errout("child openat");
 	return;
       }
+  currjob->proc.ufname.devfd = dsk.fd;
+  currjob->proc.ufname.dirfd = msname.fd;
   currjob->proc.ufname.fd = fd;
 
   errno = 0;
@@ -608,3 +610,18 @@ void stop_currjob(void)
     }
 }
 
+void lfile(char *unused)
+{
+  if (!currjob)
+    {
+      fputs(" job? ", stderr);
+      return;
+    }
+  if (currjob->state == '-')
+    {
+      fputs("\r\n not loaded? \r\n", stderr);
+      return;
+    }
+  fprintf(stderr, "\r\n%d: %d; %s (%d)\r\n",
+	  currjob->proc.ufname.devfd, currjob->proc.ufname.dirfd, currjob->proc.ufname.name, currjob->proc.ufname.fd);
+}
