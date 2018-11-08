@@ -29,6 +29,7 @@ char helptext[] =
 struct builtin builtins[] =
   {
    {"clear", "", "clear screen [^L]", clear},
+   {"chuname", "<new uname>", "change user name (log out and in again)", chuname},
    {"continue", "", "continue program, giving job TTY [$p]", contin},
    {"delete", "<file>", "delete file [^o]", delete_file},
    {"forget", "", "hide a job from DDT wihout killing it", forget},
