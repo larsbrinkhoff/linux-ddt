@@ -116,6 +116,31 @@ void listj(char *arg)
 	      j->jname, j->state, j->slot);
 }
 
+static void initslot(char slot)
+{
+  struct job *j = &jobs[slot];
+
+  j->jname = strdup(jname);
+  j->jcl = NULL;
+  j->state = '-';
+  j->slot = slot;
+  j->tmode = def_termios;
+  j->proc.ufname.name = NULL;
+  j->proc.ufname.devfd = -1;
+  j->proc.ufname.dirfd = -1;
+  j->proc.ufname.fd = -1;
+  j->proc.argv = malloc(sizeof(char *) * 2);
+  j->proc.argv[0] = NULL;
+  j->proc.argv[1] = NULL;
+  j->proc.env = malloc(sizeof(char *) * 2);
+  j->proc.env[0] = NULL;
+  j->proc.env[1] = NULL;
+  j->proc.pid = 0;
+  j->proc.status = 0;
+
+  return j;
+}
+
 void select_job(char *jname)
 {
   struct job *j;
@@ -129,25 +154,7 @@ void select_job(char *jname)
 
   if ((slot = getopenslot()) != -1)
     {
-      j = &jobs[slot];
-      j->jname = strdup(jname);
-      j->jcl = NULL;
-      j->state = '-';
-      j->slot = slot;
-      j->tmode = def_termios;
-      j->proc.ufname.name = NULL;
-      j->proc.ufname.devfd = -1;
-      j->proc.ufname.dirfd = -1;
-      j->proc.ufname.fd = -1;
-      j->proc.argv = malloc(sizeof(char *) * 2);
-      j->proc.argv[0] = NULL;
-      j->proc.argv[1] = NULL;
-      j->proc.env = malloc(sizeof(char *) * 2);
-      j->proc.env[0] = NULL;
-      j->proc.env[1] = NULL;
-      j->proc.pid = 0;
-      j->proc.status = 0;
-      currjob = j;
+      currjob = initslot(slot);
       fputs("\r\n!\r\n", stderr);
     }
   else
