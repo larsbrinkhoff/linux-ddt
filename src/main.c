@@ -12,10 +12,10 @@ static void cleanup (void)
 
 int main (int argc, char **argv)
 {
+  jobs_init ();
   files_init();
   term_init ();
   atexit (cleanup);
-  jobs_init ();
   dispatch_init ();
 
   for (;;)

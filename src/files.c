@@ -50,7 +50,7 @@ void files_init(void)
       exit(1);
     }
   errno = 0;
-  msname.fd = openat(msname.dirfd, msname.name,
+  msname.fd = openat(AT_FDCWD, msname.name,
 		     O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
   if (errno)
     errout("openat cwd");

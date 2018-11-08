@@ -37,6 +37,9 @@ void go(char *addr);
 void gzp(char *addr);
 void contin(char *);
 void proced(char *);
+void lfile(char *);
+void forget(char *);
+
 void errout(char *arg);
 
 extern struct termios def_termios;
