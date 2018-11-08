@@ -165,6 +165,8 @@ static void free_job(struct job *j)
   j->jcl = 0;
   j->state = 0;
   j->proc.ufname.name = 0;
+  if (j->proc.ufname.fd != -1)
+    close(j->proc.ufname.fd);
   j->proc.argv = 0;
 }
 
@@ -210,7 +212,9 @@ static int kill_job(struct job *j)
       if (kill(j->proc.pid, SIGTERM) == -1)
 	errout("kill");
       else
-	return 1;
+	{
+	  return 1;
+	}
       break;
     default:
       fputs("\r\nCan't do that yet.\r\n", stderr);
