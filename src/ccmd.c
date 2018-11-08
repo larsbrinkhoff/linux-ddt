@@ -13,6 +13,7 @@
 void help(char *);
 void version(char *);
 void list_builtins(char *);
+static void retry(char *arg);
 
 #define VERSION "0"
 
@@ -50,6 +51,7 @@ struct builtin builtins[] =
    {"monmode", "", "enter MONIT mode", set_monmode},
    {"proced", "", "same as proceed", proced},
    {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
+   {"retry", "<prgm> <opt jcl>", "invoke <prgm>, clobbering any old copy", retry},
    {"self", "", "select DDT as current job", self},
    {"start", "<start addr (opt)>", "start inferior [<addr>$g]", go},
    {"version", "", "type version number of Linux and DDT", version},
@@ -164,3 +166,8 @@ void set_ddtmode(char *unused)
   prompt = "*";
 }
 
+static void retry(char *arg)
+{
+  char *jcl = skip_ws(skip_prgm(arg));
+  retry_job(arg, jcl);
+}

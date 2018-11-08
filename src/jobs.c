@@ -655,11 +655,26 @@ void self(char *unused)
   fputs("\r\n", stderr);
 }
 
-void retry_job(char *jname, char *jcl)
+void retry_job(char *jname, char *arg)
 {
   struct job *j;
+  char *defjcl = "";
+  char slot;
 
   if ((j = getjob(jname)))
     {
+      fputs("\r\n", stderr);
+      if (!kill_job(j))
+	return;
+      jobwait(j);
     }
+  else if ((slot = getopenslot()) != -1)
+    currjob = initslot(slot, jname);
+  else
+    {
+      fprintf(stderr, " %d jobs already? ", MAXJOBS);
+      return;
+    }
+
+  jcl (arg ? arg : defjcl);
 }

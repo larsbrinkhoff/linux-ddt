@@ -40,6 +40,7 @@ void proced(char *);
 void lfile(char *);
 void forget(char *);
 void self(char *);
+void retry_job(char *jname, char *arg);
 
 void errout(char *arg);
 
