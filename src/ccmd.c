@@ -48,6 +48,7 @@ struct builtin builtins[] =
    {"massacre", "", "kill all your jobs", massacre},
    {"proced", "", "same as proceed", proced},
    {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
+   {"self", "", "select DDT as current job", self},
    {"start", "<start addr (opt)>", "start inferior [<addr>$g]", go},
    {"version", "", "type version number of Linux and DDT", version},
    {"?", "", "list all : commands", list_builtins},

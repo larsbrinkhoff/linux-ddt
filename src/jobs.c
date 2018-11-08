@@ -641,3 +641,9 @@ void forget(char *unused)
   else
     fputs(" job? ", stderr);
 }
+
+void self(char *unused)
+{
+  currjob = 0;
+  fputs("\r\n", stderr);
+}
