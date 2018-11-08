@@ -629,3 +629,15 @@ void lfile(char *unused)
   fprintf(stderr, "\r\n%d: %d; %s (%d)\r\n",
 	  currjob->proc.ufname.devfd, currjob->proc.ufname.dirfd, currjob->proc.ufname.name, currjob->proc.ufname.fd);
 }
+
+void forget(char *unused)
+{
+  if (currjob)
+    {
+      fputs("\r\n", stderr);
+      free_job(currjob);
+      currjob = 0;
+    }
+  else
+    fputs(" job? ", stderr);
+}
