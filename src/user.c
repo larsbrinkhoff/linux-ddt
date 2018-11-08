@@ -28,7 +28,10 @@ void logout (char *ignore)
 void login_as (char *name)
 {
   if (_runame)
-    logout(NULL);
+    {
+      fprintf(stderr, "\r\nAlready logged in.\r\n");
+      return;
+    }
   _runame = strdup(name);
   _xuname = strdup(name);
   fprintf (stderr, "\r\nWelcome, %s\r\n", _xuname);
