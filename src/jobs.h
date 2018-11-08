@@ -39,6 +39,7 @@ void contin(char *);
 void proced(char *);
 void lfile(char *);
 void forget(char *);
+void self(char *);
 
 void errout(char *arg);
 

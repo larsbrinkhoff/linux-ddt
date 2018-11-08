@@ -8,33 +8,46 @@
 char *_runame = 0;
 char *_xuname = 0;
 
+char *runame(void)
+{
+  return _runame;
+}
+
+static void _logout(void)
+{
+  massacre(NULL);
+  free(_runame);
+  _runame = 0;
+  if (_xuname)
+    {
+      free(_xuname);
+      _xuname = 0;
+    }
+}
+
 void logout (char *ignore)
 {
   fputs("\r\n", stderr);
   if (_runame)
-    {
-      massacre(NULL);
-      free(_runame);
-      _runame = 0;
-      if (_xuname)
-	{
-	  free(_xuname);
-	  _xuname = 0;
-	}
-    }
+    _logout();
   exit (0);
 }
 
 void login_as (char *name)
 {
   if (_runame)
-    logout(NULL);
+    {
+      fprintf(stderr, "\r\nAlready logged in.\r\n");
+      return;
+    }
   _runame = strdup(name);
   _xuname = strdup(name);
   fprintf (stderr, "\r\nWelcome, %s\r\n", _xuname);
 }
 
-char *runame(void)
+void chuname (char *name)
 {
-  return _runame;
+  if (_runame)
+    _logout();
+  login_as(name);
 }

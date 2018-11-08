@@ -13,7 +13,8 @@
 #define PREFIX_MAXBUF 255
 #define SUFFIX_MAXBUF 255
 
-static const char *prompt = "*";
+const char *prompt = "*";
+int monmode;
 
 static int altmodes;
 static char prefix[PREFIX_MAXBUF+1];
@@ -362,6 +363,8 @@ void dispatch_init (void)
   alt['u'] = login;
   alt['v'] = raid;
   alt['?'] = print_args;
+
+  monmode = 0;
 }
 
 static void dispatch (int ch)
@@ -375,7 +378,18 @@ void prompt_and_execute (void)
 {
   int ch;
 
-  write (1, prompt, 1);
+  fputs(prompt, stderr);
+  if (monmode)
+    {
+      char *cmdline = suffix();
+      if (cmdline != NULL)
+	{
+	  ccmd(cmdline);
+	  return;
+	}
+      else
+	fputs("\010 \010", stderr);
+    }
   altmodes = 0;
   prefix[0] = nprefix = 0;
   fn = plain;

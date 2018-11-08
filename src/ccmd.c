@@ -29,7 +29,9 @@ char helptext[] =
 struct builtin builtins[] =
   {
    {"clear", "", "clear screen [^L]", clear},
+   {"chuname", "<new uname>", "change user name (log out and in again)", chuname},
    {"continue", "", "continue program, giving job TTY [$p]", contin},
+   {"ddtmode", "", "leave MONIT mode", set_ddtmode},
    {"delete", "<file>", "delete file [^o]", delete_file},
    {"forget", "", "hide a job from DDT wihout killing it", forget},
    {"go", "<start addr (opt)>", "start inferior [$g]", go},
@@ -45,8 +47,10 @@ struct builtin builtins[] =
    {"login", "<name>", "log in [$u]", login_as},
    {"logout", "", "log off [$$u]", logout},
    {"massacre", "", "kill all your jobs", massacre},
+   {"monmode", "", "enter MONIT mode", set_monmode},
    {"proced", "", "same as proceed", proced},
    {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
+   {"self", "", "select DDT as current job", self},
    {"start", "<start addr (opt)>", "start inferior [<addr>$g]", go},
    {"version", "", "type version number of Linux and DDT", version},
    {"?", "", "list all : commands", list_builtins},
@@ -145,3 +149,18 @@ void clear(char *arg)
 {
   fprintf(stderr, "\033[2J\033[H");
 }
+
+void set_monmode(char *unused)
+{
+  fputs("\r\n", stderr);
+  monmode = 1;
+  prompt = ":";
+}
+
+void set_ddtmode(char *unused)
+{
+  fputs("\r\n", stderr);
+  monmode = 0;
+  prompt = "*";
+}
+
