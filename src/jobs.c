@@ -116,7 +116,7 @@ void listj(char *arg)
 	      j->jname, j->state, j->slot);
 }
 
-static void initslot(char slot)
+static struct job *initslot(char slot, char *jname)
 {
   struct job *j = &jobs[slot];
 
@@ -154,7 +154,7 @@ void select_job(char *jname)
 
   if ((slot = getopenslot()) != -1)
     {
-      currjob = initslot(slot);
+      currjob = initslot(slot, jname);
       fputs("\r\n!\r\n", stderr);
     }
   else
@@ -653,4 +653,13 @@ void self(char *unused)
 {
   currjob = 0;
   fputs("\r\n", stderr);
+}
+
+void retry_job(char *jname, char *jcl)
+{
+  struct job *j;
+
+  if ((j = getjob(jname)))
+    {
+    }
 }
