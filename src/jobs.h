@@ -9,6 +9,7 @@ struct process {
 
 struct job {
   char *jname;
+  char *xjname;
   char *jcl;
   char state;
   char slot;

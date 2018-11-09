@@ -126,6 +126,7 @@ static struct job *initslot(char slot, char *jname)
   struct job *j = &jobs[slot];
 
   j->jname = strdup(jname);
+  j->xjname = strdup(jname);
   j->jcl = NULL;
   j->state = '-';
   j->slot = slot;
@@ -169,11 +170,13 @@ void select_job(char *jname)
 static void free_job(struct job *j)
 {
   if (j->jname) free(j->jname);
+  if (j->xjname) free(j->xjname);
   if (j->jcl) free(j->jcl);
   if (j->proc.ufname.name) free(j->proc.ufname.name);
   if (j->proc.argv) free(j->proc.argv);
   // if (j->proc.env) free(j->proc.env);
   j->jname = 0;
+  j->xjname = 0;
   j->jcl = 0;
   j->state = 0;
   j->proc.ufname.name = 0;
@@ -447,7 +450,7 @@ void load_prog(char *name)
   if (currjob->proc.ufname.name) free(currjob->proc.ufname.name);
   currjob->proc.ufname.name = strdup(name);
   if (currjob->proc.argv[0]) free(currjob->proc.argv[0]);
-  currjob->proc.argv[0] = strdup(name);
+  currjob->proc.argv[0] = strdup(currjob->xjname);
 
   int fd;
 
