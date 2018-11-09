@@ -25,6 +25,8 @@ struct job *jobsend = &jobs[MAXJOBS];
 struct job *currjob = 0;
 struct job *fg = 0;
 
+int clobrf = 1;
+
 static char errstr[64];
 static int pfd1[2], pfd2[2];
 
@@ -689,6 +691,12 @@ void self(char *unused)
   fputs("\r\n", stderr);
 }
 
+int uquery(char *text)
+{
+  fprintf(stderr, "--%s--", text);
+  return (term_read() == ' ');
+}
+
 void retry_job(char *jname, char *arg)
 {
   struct job *j;
@@ -698,6 +706,11 @@ void retry_job(char *jname, char *arg)
   if ((j = getjob(jname)))
     {
       fputs("\r\n", stderr);
+      if (clobrf && !uquery("Clobber Existing Job"))
+	{
+	  fputs("\r\n", stderr);
+	  return;
+	}
       if (!kill_job(j))
 	return;
       jobwait(j);
