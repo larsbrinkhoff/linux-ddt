@@ -163,7 +163,10 @@ static void login (void)
   if (altmodes > 1)
     logout (NULL);
   else
-    login_as(prefix);
+    {
+      login_as(prefix);
+      clobrf = 0;
+    }
   done = 1;
 }
 
