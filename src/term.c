@@ -4,6 +4,7 @@
 #include <termios.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <errno.h>
 
 struct termios def_termios;
 static struct termios new_termios;
@@ -59,12 +60,19 @@ int term_read (void)
   char ch;
   int n;
 
-  n = read (0, &ch, 1);
-  if (n != 1)
-    {
-      fprintf (stderr, "Bye!\n");
-      exit (0);
-    }
+  errno = 0;
+  while ((n = read (0, &ch, 1)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      {
+	perror("read");
+	fprintf (stderr, "Bye!\n");
+	exit (0);
+      }
 
   return ch;
 }
