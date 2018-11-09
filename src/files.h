@@ -6,6 +6,7 @@ struct file {
 };
 
 void files_init(void);
+struct file *findprog(char *name);
 int syscommand(char *name, char *arg);
 void delete_file(char *name);
 

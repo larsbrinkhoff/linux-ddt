@@ -18,6 +18,8 @@
 #define MAXJOBS 8
 #define MAXARGS 256
 
+#define EXPECT_STOP 1
+
 struct job jobs[MAXJOBS] = { 0 };
 struct job *jobsend = &jobs[MAXJOBS];
 struct job *currjob = 0;
@@ -202,12 +204,39 @@ static void jobwait(struct job *j)
     fprintf(stderr, " wait status=%d\r\n", status);
 }
 
+static void waitexpect(struct job *j, int expect, int sig)
+{
+  int status = 0;
+
+  waitpid(j->proc.pid, &status, WUNTRACED|WCONTINUED);
+  if (WIFEXITED(status))
+    {
+      if (WEXITSTATUS(status))
+	fprintf(stderr, ":exit %d\r\n", WEXITSTATUS(status));
+      free_job(j);
+    }
+  else if (WIFSIGNALED(status))
+    {
+      fprintf(stderr, ":kill %d\r\n", WTERMSIG(status));
+      free_job(j);
+    }
+  else if (WIFSTOPPED(status))
+    {
+      if (!(expect & EXPECT_STOP && sig == WSTOPSIG(status)))
+	fprintf(stderr, ":stop signal=%d\r\n", WSTOPSIG(status));
+      j->state = 'p';
+    }
+  else
+    fprintf(stderr, " wait status=%d\r\n", status);
+}
+
 static int kill_job(struct job *j)
 {
   int status;
   switch (j->state)
     {
     case '-':
+      return 1;
       break;
     case '~':
     case 'p':
@@ -354,6 +383,44 @@ void child_load(void)
   _exit(-1);
 }
 
+static void load_(void)
+{
+  errno = 0;
+  pid_t childpid = fork();
+
+  if (childpid == -1)
+    {
+      fputs("\r\nfork failed\r\n", stderr);
+      return;
+    }
+
+  if (!childpid)
+    child_load();
+
+  wait_child();
+  if (ptrace(PTRACE_SEIZE, childpid, NULL, NULL) == -1)
+    errout("ptrace seize");
+  tell_child();
+
+  int status = 0;
+  waitpid(childpid, &status, 0);
+  if (WIFEXITED(status))
+    fprintf(stderr, "child exec failed. status=%d", WEXITSTATUS(status));
+  else if (WIFSIGNALED(status))
+    fprintf(stderr, "\r\nchild killed. signal=%d", WTERMSIG(status));
+  else if (WIFSTOPPED(status))
+    {
+      currjob->proc.pid = childpid;
+      setpgid(childpid, currjob->proc.pid);
+      currjob->state = '~';
+    }
+
+  if (ptrace(PTRACE_SETOPTIONS, childpid, NULL, PTRACE_O_TRACEEXEC) == -1)
+    errout("ptrace setoptions");
+  else if (ptrace(PTRACE_CONT, childpid, NULL, NULL) == -1)
+    errout("ptrace cont");
+}
+
 void load_prog(char *name)
 {
   if (!runame())
@@ -398,40 +465,7 @@ void load_prog(char *name)
   currjob->proc.ufname.dirfd = msname.fd;
   currjob->proc.ufname.fd = fd;
 
-  errno = 0;
-  pid_t childpid = fork();
-
-  if (childpid == -1)
-    {
-      fputs("\r\nfork failed\r\n", stderr);
-      return;
-    }
-
-  if (!childpid)
-    child_load();
-
-  wait_child();
-  if (ptrace(PTRACE_SEIZE, childpid, NULL, NULL) == -1)
-    errout("ptrace seize");
-  tell_child();
-
-  int status = 0;
-  waitpid(childpid, &status, 0);
-  if (WIFEXITED(status))
-    fprintf(stderr, "child exec failed. status=%d", WEXITSTATUS(status));
-  else if (WIFSIGNALED(status))
-    fprintf(stderr, "\r\nchild killed. signal=%d", WTERMSIG(status));
-  else if (WIFSTOPPED(status))
-    {
-      currjob->proc.pid = childpid;
-      setpgid(childpid, currjob->proc.pid);
-      currjob->state = '~';
-    }
-
-  if (ptrace(PTRACE_SETOPTIONS, childpid, NULL, PTRACE_O_TRACEEXEC) == -1)
-    errout("ptrace setoptions");
-  else if (ptrace(PTRACE_CONT, childpid, NULL, NULL) == -1)
-    errout("ptrace cont");
+  load_();
 
   fputs("\r\n", stderr);
 }
@@ -677,4 +711,35 @@ void retry_job(char *jname, char *arg)
     }
 
   jcl (arg ? arg : defjcl);
+
+  struct file *dir;
+  if (!(dir = findprog(jname)))
+    {
+      fprintf(stderr, "%s - file not found\r\n", jname);
+      return;
+    }
+  int fd;
+  while ((fd = openat(dir->fd, jname,
+		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      {
+	errout("child openat");
+	return;
+      }
+  currjob->proc.ufname.name = strdup(jname);
+  currjob->proc.ufname.devfd = dir->devfd;
+  currjob->proc.ufname.dirfd = dir->fd;
+  currjob->proc.ufname.fd = fd;
+  currjob->proc.argv[0] = strdup(jname);
+  load_();
+  waitexpect(currjob, EXPECT_STOP, 5);
+
+  ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
+  currjob->state = 'r';
+  setfg(currjob);
 }
