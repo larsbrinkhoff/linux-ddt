@@ -110,8 +110,10 @@ void ccmd(char *cmdline)
     {
       if (!runame())
 	fputs("\r\n(Please Log In)\r\n\r\n:kill\r\n", stderr);
-      else if (syscommand(cmd, arg) == -1)
-	fprintf (stderr, "\r\n%s - Unknown command\r\n", cmd);
+      else if (genjfl)
+	fprintf(stderr, "\r\nWould :new %s %s\r\n", cmd, arg);
+      else
+	retry_job(cmd, arg);
     }
 }
 

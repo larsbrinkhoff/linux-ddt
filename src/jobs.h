@@ -47,3 +47,4 @@ void errout(char *arg);
 extern struct termios def_termios;
 extern struct job *currjob;
 extern int clobrf;
+extern int genjfl;

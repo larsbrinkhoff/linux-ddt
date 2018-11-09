@@ -74,22 +74,6 @@ struct file *findprog(char *name)
   return 0;
 }
 
-int syscommand(char *name, char *arg)
-{
-  int fd;
-  for (int i = 0; i < QTY_SYSDIRS; i++)
-    {
-      if (sysdirs[i].fd == -1)
-	continue;
-      if ((fd = faccessat(sysdirs[i].fd, name, X_OK, 0)) != -1)
-	{
-	  fprintf(stderr, "\r\nSystem command: %s arg: %s\r\n", name, arg);
-	  return fd;
-	}
-    }
-  return -1;
-}
-
 void delete_file(char *name)
 {
   fputs("\r\n", stderr);

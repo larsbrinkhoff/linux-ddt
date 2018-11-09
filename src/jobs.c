@@ -26,6 +26,7 @@ struct job *currjob = 0;
 struct job *fg = 0;
 
 int clobrf = 1;
+int genjfl = 1;
 
 static char errstr[64];
 static int pfd1[2], pfd2[2];

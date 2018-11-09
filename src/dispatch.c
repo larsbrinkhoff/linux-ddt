@@ -165,7 +165,7 @@ static void login (void)
   else
     {
       login_as(prefix);
-      clobrf = 0;
+      genjfl = clobrf = 0;
     }
   done = 1;
 }
