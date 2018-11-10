@@ -724,26 +724,44 @@ int uquery(char *text)
   return (term_read() == ' ');
 }
 
-void retry_job(char *jname, char *arg)
+void run_(char *jname, char *arg, int genj)
 {
   struct job *j;
   char *defjcl = "";
   char slot;
+  char *njname = NULL;
 
   if ((j = getjob(jname)))
     {
-      fputs("\r\n", stderr);
-      if (clobrf && !uquery("Clobber Existing Job"))
+      if (!genj)
 	{
 	  fputs("\r\n", stderr);
-	  return;
+	  if (clobrf && !uquery("Clobber Existing Job"))
+	    {
+	      fputs("\r\n", stderr);
+	      return;
+	    }
+	  if (!kill_job(j))
+	    return;
+	  jobwait(j);
 	}
-      if (!kill_job(j))
-	return;
-      jobwait(j);
+      else
+	{
+	  if ((njname = nextuniq(currjob->jname)) == NULL)
+	    {
+	      fputs(" uniqerr? ", stderr);
+	      return;
+	    }
+	}
     }
-  else if ((slot = getopenslot()) != -1)
-    currjob = initslot(slot, jname);
+  if ((slot = getopenslot()) != -1)
+    {
+      currjob = initslot(slot, jname);
+      if (genj && njname != NULL) {
+	if (currjob->jname) free(currjob->jname);
+	currjob->jname = njname;
+      }
+    }
   else
     {
       fprintf(stderr, " %d jobs already? ", MAXJOBS);
