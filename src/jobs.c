@@ -9,6 +9,7 @@
 #include <sys/ptrace.h>
 #include <errno.h>
 #include <termios.h>
+#include <ctype.h>
 #include "files.h"
 #include "jobs.h"
 #include "user.h"
@@ -18,10 +19,15 @@
 #define MAXJOBS 8
 #define MAXARGS 256
 
+#define EXPECT_STOP 1
+
 struct job jobs[MAXJOBS] = { 0 };
 struct job *jobsend = &jobs[MAXJOBS];
 struct job *currjob = 0;
 struct job *fg = 0;
+
+int clobrf = 1;
+int genjfl = 1;
 
 static char errstr[64];
 static int pfd1[2], pfd2[2];
@@ -50,6 +56,28 @@ static struct job *getjob(char *jname)
     if (j->state && strcmp(j->jname, jname) == 0)
       return j;
   return 0;
+}
+
+static char *nextuniq(char *jname)
+{
+  int l = strlen(jname);
+  char *nstr;
+  unsigned int found = -1;
+  if ((nstr = malloc(l+2)) == NULL)
+    return NULL;
+  for (struct job *j = jobs; j < jobsend; j++)
+    {
+      if (!j->state)
+	continue;
+      if ((strlen(j->jname)-1) == l
+	  && isdigit(j->jname[l]))
+	found ^= 1 << (j->jname[l] - '0');
+    }
+  strcpy(nstr, jname);
+  nstr[l++] = '0' + __builtin_ctz(found);
+  nstr[l] = 0;
+
+  return nstr;
 }
 
 static char nextslot(void)
@@ -116,6 +144,32 @@ void listj(char *arg)
 	      j->jname, j->state, j->slot);
 }
 
+static struct job *initslot(char slot, char *jname)
+{
+  struct job *j = &jobs[slot];
+
+  j->jname = strdup(jname);
+  j->xjname = strdup(jname);
+  j->jcl = NULL;
+  j->state = '-';
+  j->slot = slot;
+  j->tmode = def_termios;
+  j->proc.ufname.name = NULL;
+  j->proc.ufname.devfd = -1;
+  j->proc.ufname.dirfd = -1;
+  j->proc.ufname.fd = -1;
+  j->proc.argv = malloc(sizeof(char *) * 2);
+  j->proc.argv[0] = NULL;
+  j->proc.argv[1] = NULL;
+  j->proc.env = malloc(sizeof(char *) * 2);
+  j->proc.env[0] = NULL;
+  j->proc.env[1] = NULL;
+  j->proc.pid = 0;
+  j->proc.status = 0;
+
+  return j;
+}
+
 void select_job(char *jname)
 {
   struct job *j;
@@ -129,25 +183,7 @@ void select_job(char *jname)
 
   if ((slot = getopenslot()) != -1)
     {
-      j = &jobs[slot];
-      j->jname = strdup(jname);
-      j->jcl = NULL;
-      j->state = '-';
-      j->slot = slot;
-      j->tmode = def_termios;
-      j->proc.ufname.name = NULL;
-      j->proc.ufname.devfd = -1;
-      j->proc.ufname.dirfd = -1;
-      j->proc.ufname.fd = -1;
-      j->proc.argv = malloc(sizeof(char *) * 2);
-      j->proc.argv[0] = NULL;
-      j->proc.argv[1] = NULL;
-      j->proc.env = malloc(sizeof(char *) * 2);
-      j->proc.env[0] = NULL;
-      j->proc.env[1] = NULL;
-      j->proc.pid = 0;
-      j->proc.status = 0;
-      currjob = j;
+      currjob = initslot(slot, jname);
       fputs("\r\n!\r\n", stderr);
     }
   else
@@ -157,11 +193,13 @@ void select_job(char *jname)
 static void free_job(struct job *j)
 {
   if (j->jname) free(j->jname);
+  if (j->xjname) free(j->xjname);
   if (j->jcl) free(j->jcl);
   if (j->proc.ufname.name) free(j->proc.ufname.name);
   if (j->proc.argv) free(j->proc.argv);
   // if (j->proc.env) free(j->proc.env);
   j->jname = 0;
+  j->xjname = 0;
   j->jcl = 0;
   j->state = 0;
   j->proc.ufname.name = 0;
@@ -195,12 +233,39 @@ static void jobwait(struct job *j)
     fprintf(stderr, " wait status=%d\r\n", status);
 }
 
+static void waitexpect(struct job *j, int expect, int sig)
+{
+  int status = 0;
+
+  waitpid(j->proc.pid, &status, WUNTRACED|WCONTINUED);
+  if (WIFEXITED(status))
+    {
+      if (WEXITSTATUS(status))
+	fprintf(stderr, ":exit %d\r\n", WEXITSTATUS(status));
+      free_job(j);
+    }
+  else if (WIFSIGNALED(status))
+    {
+      fprintf(stderr, ":kill %d\r\n", WTERMSIG(status));
+      free_job(j);
+    }
+  else if (WIFSTOPPED(status))
+    {
+      if (!(expect & EXPECT_STOP && sig == WSTOPSIG(status)))
+	fprintf(stderr, ":stop signal=%d\r\n", WSTOPSIG(status));
+      j->state = 'p';
+    }
+  else
+    fprintf(stderr, " wait status=%d\r\n", status);
+}
+
 static int kill_job(struct job *j)
 {
   int status;
   switch (j->state)
     {
     case '-':
+      return 1;
       break;
     case '~':
     case 'p':
@@ -347,50 +412,8 @@ void child_load(void)
   _exit(-1);
 }
 
-void load_prog(char *name)
+static void load_(void)
 {
-  if (!runame())
-    {
-      fputs("\r\n(Please Log In)\r\n\r\n:kill\r\n", stderr);
-      return;
-    }
-
-  if (!currjob)
-    {
-      fputs("\r\nno current job\r\n", stderr);
-      return;
-    }
-
-  if (currjob->state != '-')
-    {
-      fputs("\r\n already loaded? ", stderr);
-      return;
-    }
-
-  if (currjob->proc.ufname.name) free(currjob->proc.ufname.name);
-  currjob->proc.ufname.name = strdup(name);
-  if (currjob->proc.argv[0]) free(currjob->proc.argv[0]);
-  currjob->proc.argv[0] = strdup(name);
-
-  int fd;
-
-  errno = 0;
-  while ((fd = openat(hsname.fd, currjob->proc.ufname.name,
-		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
-    if (errno == EINTR)
-      {
-	errno = 0;
-	continue;
-      }
-    else
-      {
-	errout("child openat");
-	return;
-      }
-  currjob->proc.ufname.devfd = dsk.fd;
-  currjob->proc.ufname.dirfd = msname.fd;
-  currjob->proc.ufname.fd = fd;
-
   errno = 0;
   pid_t childpid = fork();
 
@@ -425,6 +448,53 @@ void load_prog(char *name)
     errout("ptrace setoptions");
   else if (ptrace(PTRACE_CONT, childpid, NULL, NULL) == -1)
     errout("ptrace cont");
+}
+
+void load_prog(char *name)
+{
+  if (!runame())
+    {
+      fputs("\r\n(Please Log In)\r\n\r\n:kill\r\n", stderr);
+      return;
+    }
+
+  if (!currjob)
+    {
+      fputs("\r\nno current job\r\n", stderr);
+      return;
+    }
+
+  if (currjob->state != '-')
+    {
+      fputs("\r\n already loaded? ", stderr);
+      return;
+    }
+
+  if (currjob->proc.ufname.name) free(currjob->proc.ufname.name);
+  currjob->proc.ufname.name = strdup(name);
+  if (currjob->proc.argv[0]) free(currjob->proc.argv[0]);
+  currjob->proc.argv[0] = strdup(currjob->xjname);
+
+  int fd;
+
+  errno = 0;
+  while ((fd = openat(hsname.fd, currjob->proc.ufname.name,
+		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      {
+	errout("child openat");
+	return;
+      }
+  currjob->proc.ufname.devfd = dsk.fd;
+  currjob->proc.ufname.dirfd = msname.fd;
+  currjob->proc.ufname.fd = fd;
+
+  load_();
 
   fputs("\r\n", stderr);
 }
@@ -645,5 +715,91 @@ void forget(char *unused)
 void self(char *unused)
 {
   currjob = 0;
+  fputs("\r\n", stderr);
+}
+
+int uquery(char *text)
+{
+  fprintf(stderr, "--%s--", text);
+  return (term_read() == ' ');
+}
+
+void retry_job(char *jname, char *arg)
+{
+  struct job *j;
+  char *defjcl = "";
+  char slot;
+
+  if ((j = getjob(jname)))
+    {
+      fputs("\r\n", stderr);
+      if (clobrf && !uquery("Clobber Existing Job"))
+	{
+	  fputs("\r\n", stderr);
+	  return;
+	}
+      if (!kill_job(j))
+	return;
+      jobwait(j);
+    }
+  else if ((slot = getopenslot()) != -1)
+    currjob = initslot(slot, jname);
+  else
+    {
+      fprintf(stderr, " %d jobs already? ", MAXJOBS);
+      return;
+    }
+
+  jcl (arg ? arg : defjcl);
+
+  struct file *dir;
+  if (!(dir = findprog(jname)))
+    {
+      fprintf(stderr, "%s - file not found\r\n", jname);
+      return;
+    }
+  int fd;
+  while ((fd = openat(dir->fd, jname,
+		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      {
+	errout("child openat");
+	return;
+      }
+  currjob->proc.ufname.name = strdup(jname);
+  currjob->proc.ufname.devfd = dir->devfd;
+  currjob->proc.ufname.dirfd = dir->fd;
+  currjob->proc.ufname.fd = fd;
+  currjob->proc.argv[0] = strdup(jname);
+  load_();
+  waitexpect(currjob, EXPECT_STOP, 5);
+
+  ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
+  currjob->state = 'r';
+  setfg(currjob);
+}
+
+void genjob(char *unused)
+{
+  char *njname;
+
+  if (!currjob)
+    {
+      fputs(" job? ", stderr);
+      return;
+    }
+
+  if ((njname = nextuniq(currjob->jname)) == NULL)
+    {
+      fputs(" err? ", stderr);
+      return;
+    }
+  if (currjob->jname) free(currjob->jname);
+  currjob->jname = njname;
   fputs("\r\n", stderr);
 }

@@ -13,6 +13,7 @@
 void help(char *);
 void version(char *);
 void list_builtins(char *);
+static void retry(char *arg);
 
 #define VERSION "0"
 
@@ -34,6 +35,7 @@ struct builtin builtins[] =
    {"ddtmode", "", "leave MONIT mode", set_ddtmode},
    {"delete", "<file>", "delete file [^o]", delete_file},
    {"forget", "", "hide a job from DDT wihout killing it", forget},
+   {"genjob", "", "rename current job to a generated unique name", genjob},
    {"go", "<start addr (opt)>", "start inferior [$g]", go},
    {"gzp", "<start addr (opt)>", "start job without tty [$g^z^p]", gzp},
    {"help", "", "print out basic information", help},
@@ -50,6 +52,7 @@ struct builtin builtins[] =
    {"monmode", "", "enter MONIT mode", set_monmode},
    {"proced", "", "same as proceed", proced},
    {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
+   {"retry", "<prgm> <opt jcl>", "invoke <prgm>, clobbering any old copy", retry},
    {"self", "", "select DDT as current job", self},
    {"start", "<start addr (opt)>", "start inferior [<addr>$g]", go},
    {"version", "", "type version number of Linux and DDT", version},
@@ -108,8 +111,10 @@ void ccmd(char *cmdline)
     {
       if (!runame())
 	fputs("\r\n(Please Log In)\r\n\r\n:kill\r\n", stderr);
-      else if (syscommand(cmd, arg) == -1)
-	fprintf (stderr, "\r\n%s - Unknown command\r\n", cmd);
+      else if (genjfl)
+	fprintf(stderr, "\r\nWould :new %s %s\r\n", cmd, arg);
+      else
+	retry_job(cmd, arg);
     }
 }
 
@@ -164,3 +169,8 @@ void set_ddtmode(char *unused)
   prompt = "*";
 }
 
+static void retry(char *arg)
+{
+  char *jcl = skip_ws(skip_prgm(arg));
+  retry_job(arg, jcl);
+}

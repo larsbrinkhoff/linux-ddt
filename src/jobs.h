@@ -9,6 +9,7 @@ struct process {
 
 struct job {
   char *jname;
+  char *xjname;
   char *jcl;
   char state;
   char slot;
@@ -40,8 +41,12 @@ void proced(char *);
 void lfile(char *);
 void forget(char *);
 void self(char *);
+void retry_job(char *jname, char *arg);
+void genjob(char *);
 
 void errout(char *arg);
 
 extern struct termios def_termios;
 extern struct job *currjob;
+extern int clobrf;
+extern int genjfl;

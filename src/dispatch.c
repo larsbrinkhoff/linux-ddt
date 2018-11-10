@@ -163,7 +163,10 @@ static void login (void)
   if (altmodes > 1)
     logout (NULL);
   else
-    login_as(prefix);
+    {
+      login_as(prefix);
+      genjfl = clobrf = 0;
+    }
   done = 1;
 }
 
@@ -288,6 +291,15 @@ void load (void)
   done = 1;
 }
 
+void kreat (void)
+{
+  if (nprefix)
+    retry_job(prefix, NULL);
+  else
+    fputs("?? ", stderr);
+  done = 1;
+}
+
 static void quotech (void)
 {
   character = term_read();
@@ -343,6 +355,7 @@ void dispatch_init (void)
 
   plain[CTRL_('D')] = flushin;
   plain[BACKSPACE] = backspace;
+  plain[CTRL_('K')] = kreat;
   plain[FORMFEED] = formfeed;
   plain[CTRL_('N')] = step;
   plain[CTRL_('P')] = proceed;

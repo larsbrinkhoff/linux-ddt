@@ -42,6 +42,8 @@ void login_as (char *name)
     }
   _runame = strdup(name);
   _xuname = strdup(name);
+  clobrf = 1;
+  genjfl = 1;
   fprintf (stderr, "\r\nWelcome, %s\r\n", _xuname);
 }
 

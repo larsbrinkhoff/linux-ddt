@@ -39,7 +39,12 @@ void files_init(void)
       sysdirs[i].fd = openat(dsk.fd, sysdirs[i].name,
 			     O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
       if (errno)
-	errout(sysdirs[i].name);
+	{
+	  errout(sysdirs[i].name);
+	  continue;
+	}
+      sysdirs[i].devfd = dsk.fd;
+      sysdirs[i].dirfd = dsk.fd;
     }
   
   msname.name = malloc(PATH_MAX);
@@ -56,7 +61,7 @@ void files_init(void)
     errout("openat cwd");
 }
 
-int syscommand(char *name, char *arg)
+struct file *findprog(char *name)
 {
   int fd;
   for (int i = 0; i < QTY_SYSDIRS; i++)
@@ -64,12 +69,9 @@ int syscommand(char *name, char *arg)
       if (sysdirs[i].fd == -1)
 	continue;
       if ((fd = faccessat(sysdirs[i].fd, name, X_OK, 0)) != -1)
-	{
-	  fprintf(stderr, "\r\nSystem command: %s arg: %s\r\n", name, arg);
-	  return fd;
-	}
+	return &(sysdirs[i]);
     }
-  return -1;
+  return 0;
 }
 
 void delete_file(char *name)

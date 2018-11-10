@@ -6,7 +6,7 @@ struct file {
 };
 
 void files_init(void);
-int syscommand(char *name, char *arg);
+struct file *findprog(char *name);
 void delete_file(char *name);
 
 extern struct file dsk;
