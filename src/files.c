@@ -64,7 +64,7 @@ void files_init(void)
     }
 
   hsname.name = strdup(msname.name);
-  hsname.devfd = msname.devfd;
+  hsname.devfd = dsk.fd;
   hsname.dirfd = msname.dirfd;
   errno = 0;
   hsname.fd = openat(dsk.fd, hsname.name,
@@ -87,14 +87,6 @@ struct file *findprog(char *name)
 	return &(sysdirs[i]);
     }
   return 0;
-}
-
-void delete_file(char *name)
-{
-  fputs("\r\n", stderr);
-  errno = 0;
-  if (unlinkat(msname.fd, name, 0) == -1)
-    errout(0);
 }
 
 static inline char *skip_ws(char *buf)
@@ -156,9 +148,27 @@ char *parse_fname(struct file *f, char *str)
   return str + strlen(str);
 }
 
+void delete_file(char *name)
+{
+  struct file parsed = { 0, dsk.fd, msname.fd, -1 };
+  char *p = parse_fname(&parsed, name);
+  fputs("\r\n", stderr);
+  if (p == NULL)
+    return;
+  if (parsed.name == NULL)
+    {
+      fprintf(stderr, " no defaulting yet\r\n");
+      return;
+    }
+  errno = 0;
+  if (unlinkat(parsed.dirfd, parsed.name, 0) == -1)
+    errout(0);
+  free(parsed.name);
+}
+
 void cwd(char *arg)
 {
-  struct file parsed = { 0, -1, -1, -1 };
+  struct file parsed = { 0, dsk.fd, -1, -1 };
 
   fputs("\r\n", stderr);
 
