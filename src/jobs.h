@@ -42,6 +42,7 @@ void lfile(char *);
 void forget(char *);
 void self(char *);
 void retry_job(char *jname, char *arg);
+void genjob(char *);
 
 void errout(char *arg);
 

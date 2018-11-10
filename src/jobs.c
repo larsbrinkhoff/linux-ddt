@@ -9,6 +9,7 @@
 #include <sys/ptrace.h>
 #include <errno.h>
 #include <termios.h>
+#include <ctype.h>
 #include "files.h"
 #include "jobs.h"
 #include "user.h"
@@ -55,6 +56,32 @@ static struct job *getjob(char *jname)
     if (j->state && strcmp(j->jname, jname) == 0)
       return j;
   return 0;
+}
+
+static char *nextuniq(char *jname)
+{
+  int l = strlen(jname);
+  char *nstr;
+  if ((nstr = malloc(l+2)) == NULL)
+    return NULL;
+  strncpy(nstr, jname, l);
+  nstr[l++] = '/';
+  nstr[l] = 0;
+  for (struct job *j = jobs; j< jobsend; j++)
+    {
+      if (!j->state)
+	continue;
+      int tl = strlen(j->jname);
+      if (tl == l &&
+	  isdigit(j->jname[l-1]) &&
+	  j->jname[l-1] > nstr[l-1])
+	{
+	  nstr[l-1] = j->jname[l-1];
+	}
+    }
+  nstr[l-1]++;
+
+  return nstr;
 }
 
 static char nextslot(void)
@@ -759,4 +786,24 @@ void retry_job(char *jname, char *arg)
   ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
   currjob->state = 'r';
   setfg(currjob);
+}
+
+void genjob(char *unused)
+{
+  char *njname;
+
+  if (!currjob)
+    {
+      fputs(" job? ", stderr);
+      return;
+    }
+
+  if ((njname = nextuniq(currjob->jname)) == NULL)
+    {
+      fputs(" err? ", stderr);
+      return;
+    }
+  if (currjob->jname) free(currjob->jname);
+  currjob->jname = njname;
+  fputs("\r\n", stderr);
 }

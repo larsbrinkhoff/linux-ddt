@@ -35,6 +35,7 @@ struct builtin builtins[] =
    {"ddtmode", "", "leave MONIT mode", set_ddtmode},
    {"delete", "<file>", "delete file [^o]", delete_file},
    {"forget", "", "hide a job from DDT wihout killing it", forget},
+   {"genjob", "", "rename current job to a generated unique name", genjob},
    {"go", "<start addr (opt)>", "start inferior [$g]", go},
    {"gzp", "<start addr (opt)>", "start job without tty [$g^z^p]", gzp},
    {"help", "", "print out basic information", help},
