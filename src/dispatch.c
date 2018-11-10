@@ -294,7 +294,7 @@ void load (void)
 void kreat (void)
 {
   if (nprefix)
-    retry_job(prefix, NULL);
+    run_(prefix, NULL, 0);
   else
     fputs("?? ", stderr);
   done = 1;

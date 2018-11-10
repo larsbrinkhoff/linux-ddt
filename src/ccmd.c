@@ -14,6 +14,7 @@ void help(char *);
 void version(char *);
 void list_builtins(char *);
 static void retry(char *arg);
+static void new(char *arg);
 
 #define VERSION "0"
 
@@ -50,6 +51,7 @@ struct builtin builtins[] =
    {"logout", "", "log off [$$u]", logout},
    {"massacre", "", "kill all your jobs", massacre},
    {"monmode", "", "enter MONIT mode", set_monmode},
+   {"new", "<prgm> <opt jcl>", "invoke <prgm>. If already using <pgrm>, make a second copy", new},
    {"proced", "", "same as proceed", proced},
    {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
    {"retry", "<prgm> <opt jcl>", "invoke <prgm>, clobbering any old copy", retry},
@@ -111,10 +113,8 @@ void ccmd(char *cmdline)
     {
       if (!runame())
 	fputs("\r\n(Please Log In)\r\n\r\n:kill\r\n", stderr);
-      else if (genjfl)
-	fprintf(stderr, "\r\nWould :new %s %s\r\n", cmd, arg);
       else
-	retry_job(cmd, arg);
+	run_(cmd, arg, genjfl);
     }
 }
 
@@ -172,5 +172,11 @@ void set_ddtmode(char *unused)
 static void retry(char *arg)
 {
   char *jcl = skip_ws(skip_prgm(arg));
-  retry_job(arg, jcl);
+  run_(arg, jcl, 0);
+}
+
+static void new(char *arg)
+{
+  char *jcl = skip_ws(skip_prgm(arg));
+  run_(arg, jcl, 1);
 }
