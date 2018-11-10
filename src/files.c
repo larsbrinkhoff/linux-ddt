@@ -51,14 +51,29 @@ void files_init(void)
   errno = 0;
   if (getcwd(msname.name, PATH_MAX) == 0)
     {
-      errout("cwd");
+      errout("getcwd");
       exit(1);
     }
   errno = 0;
-  msname.fd = openat(AT_FDCWD, msname.name,
+  msname.fd = openat(dsk.fd, msname.name,
 		     O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
   if (errno)
-    errout("openat cwd");
+    {
+      errout("openat msname");
+      exit(1);
+    }
+
+  hsname.name = strdup(msname.name);
+  hsname.devfd = msname.devfd;
+  hsname.dirfd = msname.dirfd;
+  errno = 0;
+  hsname.fd = openat(dsk.fd, hsname.name,
+		     O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+  if (errno)
+    {
+      errout("openat hsname");
+      exit(1);
+    }
 }
 
 struct file *findprog(char *name)
@@ -80,4 +95,97 @@ void delete_file(char *name)
   errno = 0;
   if (unlinkat(msname.fd, name, 0) == -1)
     errout(0);
+}
+
+static inline char *skip_ws(char *buf)
+{
+  while (*buf == ' ')
+    buf++;
+  return buf;
+}
+
+char *parse_fname(struct file *f, char *str)
+{
+  char *eow;
+  str = skip_ws(str);
+
+  while ((eow = strpbrk(str, ":; ,")) != NULL)
+    {
+      switch (*eow)
+	{
+	case ':':
+	  *eow = 0;
+	  if (strcmp(str, "dsk") != 0)
+	    {
+	      fprintf(stderr, " %s unknown device? ", str);
+	      return NULL;
+	    }
+	  f->devfd = dsk.fd;
+	  break;
+	case ';':
+	  *eow = 0;
+	  fprintf(stderr, " found dir %s; (NSY) ", str);
+	  f->dirfd = -1;
+	  return NULL;
+	  break;
+	case ' ':
+	  *eow = 0;
+	  if (f->name) free(f->name);
+	  f->name = strdup(str);
+	  break;
+	case ',':
+	  *eow = 0;
+	  if ((eow - str) > 1)
+	    {
+	      if (f->name) free(f->name);
+	      f->name = strdup(str);
+	    }
+	  return ++eow;
+	  break;
+	}
+      str = ++eow;
+      str = skip_ws(str);
+    }
+
+  if (*str)
+    {
+      if (f->name) free(f->name);
+      f->name = strdup(str);
+    }
+
+  return str + strlen(str);
+}
+
+void cwd(char *arg)
+{
+  struct file parsed = { 0, -1, -1, -1 };
+
+  fputs("\r\n", stderr);
+
+  char *p = parse_fname(&parsed, arg);
+  if (p == NULL)
+    return;
+      
+  if (parsed.name == NULL)
+    {
+      parsed.name = strdup(hsname.name);
+      parsed.devfd = hsname.devfd;
+      parsed.dirfd = hsname.dirfd;
+    }
+
+  int fd;
+  errno = 0;
+  fd = openat(msname.fd, parsed.name,
+	      O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+  if (!errno)
+    {
+      if (msname.name) free(msname.name);
+      msname.name = parsed.name;
+      msname.devfd = parsed.devfd;
+      msname.dirfd = parsed.dirfd;
+      if (msname.fd != -1) close(msname.fd);
+      msname.fd = fd;
+    }
+  else
+    errout("cwd");
 }

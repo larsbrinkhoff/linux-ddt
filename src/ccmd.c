@@ -33,6 +33,7 @@ struct builtin builtins[] =
    {"clear", "", "clear screen [^L]", clear},
    {"chuname", "<new uname>", "change user name (log out and in again)", chuname},
    {"continue", "", "continue program, giving job TTY [$p]", contin},
+   {"cwd", "<dir>", "change working directory [$$^s]", cwd},
    {"ddtmode", "", "leave MONIT mode", set_ddtmode},
    {"delete", "<file>", "delete file [^o]", delete_file},
    {"forget", "", "hide a job from DDT wihout killing it", forget},
