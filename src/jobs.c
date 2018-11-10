@@ -62,24 +62,20 @@ static char *nextuniq(char *jname)
 {
   int l = strlen(jname);
   char *nstr;
+  unsigned int found = -1;
   if ((nstr = malloc(l+2)) == NULL)
     return NULL;
-  strncpy(nstr, jname, l);
-  nstr[l++] = '/';
-  nstr[l] = 0;
-  for (struct job *j = jobs; j< jobsend; j++)
+  for (struct job *j = jobs; j < jobsend; j++)
     {
       if (!j->state)
 	continue;
-      int tl = strlen(j->jname);
-      if (tl == l &&
-	  isdigit(j->jname[l-1]) &&
-	  j->jname[l-1] > nstr[l-1])
-	{
-	  nstr[l-1] = j->jname[l-1];
-	}
+      if ((strlen(j->jname)-1) == l
+	  && isdigit(j->jname[l]))
+	found ^= 1 << (j->jname[l] - '0');
     }
-  nstr[l-1]++;
+  strcpy(nstr, jname);
+  nstr[l++] = '0' + __builtin_ctz(found);
+  nstr[l] = 0;
 
   return nstr;
 }
