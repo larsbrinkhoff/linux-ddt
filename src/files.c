@@ -23,21 +23,38 @@ struct file sysdirs[QTY_SYSDIRS] = {
 struct file hsname = { 0, -1, -1, -1 };
 struct file msname = { 0, -1, -1, -1 };
 
+int open_dirpath(int dirfd, char *path)
+{
+  int fd;
+
+  errno = 0;
+
+  while ((fd = openat(dirfd, path, O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      return -1;
+  return fd;
+}
+
 void files_init(void)
 {
   int fd;
-  errno = 0;
-  fd = openat(AT_FDCWD, "/",
-	      O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
-  dsk.fd = dsk.dirfd = dsk.devfd = fd;
+
+  fd = open_dirpath(AT_FDCWD, "/");
   if (errno)
-    errout("/");
+    {
+     errout("/");
+     exit(1);
+    }
+  dsk.fd = dsk.dirfd = dsk.devfd = fd;
 
   for (int i = 0; i < QTY_SYSDIRS; i++)
     {
-      errno = 0;
-      sysdirs[i].fd = openat(dsk.fd, sysdirs[i].name,
-			     O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+      sysdirs[i].fd = open_dirpath(dsk.fd, sysdirs[i].name);
       if (errno)
 	{
 	  errout(sysdirs[i].name);
@@ -54,24 +71,22 @@ void files_init(void)
       errout("getcwd");
       exit(1);
     }
-  errno = 0;
-  msname.fd = openat(dsk.fd, msname.name,
-		     O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+
+  msname.fd = open_dirpath(dsk.fd, msname.name);
   if (errno)
     {
-      errout("openat msname");
+      errout(msname.name);
       exit(1);
     }
 
   hsname.name = strdup(msname.name);
   hsname.devfd = dsk.fd;
   hsname.dirfd = msname.dirfd;
-  errno = 0;
-  hsname.fd = openat(dsk.fd, hsname.name,
-		     O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+
+  hsname.fd = open_dirpath(dsk.fd, hsname.name);
   if (errno)
     {
-      errout("openat hsname");
+      errout(hsname.name);
       exit(1);
     }
 }
@@ -184,9 +199,7 @@ void cwd(char *arg)
     }
 
   int fd;
-  errno = 0;
-  fd = openat(msname.fd, parsed.name,
-	      O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+  fd = open_dirpath(msname.fd, parsed.name);
   if (!errno)
     {
       if (msname.name) free(msname.name);
@@ -197,5 +210,5 @@ void cwd(char *arg)
       msname.fd = fd;
     }
   else
-    errout("cwd");
+    errout(parsed.name);
 }
