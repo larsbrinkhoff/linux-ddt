@@ -105,6 +105,16 @@ struct file *findprog(char *name)
       if ((fd = faccessat(sysdirs[i].fd, name, X_OK, 0)) != -1)
 	return &(sysdirs[i]);
     }
+  for (int i = 0; i < QTY_FDIRS; i++)
+    {
+      if (finddirs[i] == NULL)
+	break;
+      fprintf(stderr, " %s;\r\n", finddirs[i]->name);
+      if ((fd = faccessat(finddirs[i]->fd, name, X_OK, 0)) != -1)
+	{
+	  return finddirs[i];
+	}
+    }
   if ((fd = faccessat(msname.fd, name, X_OK, 0)) != -1)
     return &msname;
   return 0;
