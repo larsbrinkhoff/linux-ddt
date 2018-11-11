@@ -101,6 +101,8 @@ struct file *findprog(char *name)
       if ((fd = faccessat(sysdirs[i].fd, name, X_OK, 0)) != -1)
 	return &(sysdirs[i]);
     }
+  if ((fd = faccessat(msname.fd, name, X_OK, 0)) != -1)
+    return &msname;
   return 0;
 }
 
