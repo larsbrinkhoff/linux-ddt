@@ -11,14 +11,18 @@
 
 #define PATH_MAX 4096
 
-struct file dsk = {"dsk", -1, -1, -1};
 #define QTY_SYSDIRS 4
+#define QTY_FDIRS 8
+
+struct file dsk = {"dsk", -1, -1, -1};
 struct file sysdirs[QTY_SYSDIRS] = {
 				    {"bin", -1, -1, -1},
 				    {"sbin", -1, -1, -1},
 				    {"usr/bin", -1, -1, -1},
 				    {"usr/sbin", -1, -1, -1}
 };
+
+struct file *finddirs[QTY_FDIRS] = { 0 };
 
 struct file hsname = { 0, -1, -1, -1 };
 struct file msname = { 0, -1, -1, -1 };
@@ -213,4 +217,56 @@ void cwd(char *arg)
     }
   else
     errout(parsed.name);
+}
+
+static void insert_fdir(struct file *fdir)
+{
+  struct file *ins = NULL;
+  struct file *t = fdir;
+  for (int i = 0; i < QTY_FDIRS; i++)
+    {
+      ins = t;
+      t = finddirs[i];
+      finddirs[i] = ins;
+      if (t == 0) break;
+      if (strcmp(t->name, fdir->name) == 0
+	  && t->dirfd == fdir->dirfd
+	  && t->devfd == fdir->devfd)
+	break;
+    }
+}
+
+void nfdir(char *arg)
+{
+  struct file *parsed;
+
+  parsed = (struct file *)malloc(sizeof(struct file));
+
+  parsed->name = 0;
+  parsed->devfd = dsk.fd;
+  parsed->dirfd = msname.fd;
+  parsed->fd = -1;
+
+  fputs("\r\n", stderr);
+
+  char *p = parse_fname(parsed, arg);
+  if (p == NULL)
+    return;
+
+  if (parsed->name == NULL)
+    {
+      fputs(" missing name? ", stderr);
+      return;
+    }
+
+  int fd;
+  fd = open_dirpath(parsed->dirfd, parsed->name);
+  if (errno)
+    {
+      errout(parsed->name);
+      return;
+    }
+  parsed->fd = fd;
+
+  insert_fdir(parsed);
 }
