@@ -109,9 +109,9 @@ struct file *findprog(char *name)
     {
       if (finddirs[i] == NULL)
 	break;
-      fprintf(stderr, " %s;\r\n", finddirs[i]->name);
       if ((fd = faccessat(finddirs[i]->fd, name, X_OK, 0)) != -1)
 	{
+	  fprintf(stderr, " %s;\r\n", finddirs[i]->name);
 	  return finddirs[i];
 	}
     }
@@ -274,37 +274,62 @@ void ofdir(char *arg)
   fprintf(stderr, "\r\nWould ofdir here\r\n");
 }
 
+static void parse_fnames(struct file *parsed[], int n, char *arg)
+{
+  char *p;
+  for (int i = 0; i < n; i++) {
+    parsed[i] = (struct file *)malloc(sizeof(struct file));
+
+    parsed[i]->name = 0;
+    parsed[i]->devfd = dsk.fd;
+    parsed[i]->dirfd = msname.fd;
+    parsed[i]->fd = -1;
+
+    p = parse_fname(parsed[i], arg);
+    if (p == NULL)
+      {
+	free(parsed[i]);
+	parsed[i] = NULL;
+	continue;
+      }
+
+    if (parsed[i]->name == NULL)
+      {
+	fprintf(stderr, " arg %d noname? ", i+1);
+	free(parsed[i]);
+	parsed[i] = NULL;
+	continue;
+      }
+    if (*p)
+      arg = p;
+    else
+      break;
+  }
+  if (*p)
+    fprintf(stderr, " ign args >%d? ", n);
+}
+
 void nfdir(char *arg)
 {
-  struct file *parsed;
-
-  parsed = (struct file *)malloc(sizeof(struct file));
-
-  parsed->name = 0;
-  parsed->devfd = dsk.fd;
-  parsed->dirfd = msname.fd;
-  parsed->fd = -1;
+  struct file *parsed[QTY_FDIRS] = { 0 };
 
   fputs("\r\n", stderr);
 
-  char *p = parse_fname(parsed, arg);
-  if (p == NULL)
-    return;
+  parse_fnames(parsed, QTY_FDIRS, arg);
 
-  if (parsed->name == NULL)
+  for (int i = QTY_FDIRS; --i >= 0; )
     {
-      fputs(" missing name? ", stderr);
-      return;
-    }
+      if (parsed[i] == NULL)
+	continue;
 
-  int fd;
-  fd = open_dirpath(parsed->dirfd, parsed->name);
-  if (errno)
-    {
-      errout(parsed->name);
-      return;
+      int fd;
+      fd = open_dirpath(parsed[i]->dirfd, parsed[i]->name);
+      if (errno)
+	{
+	  errout(parsed[i]->name);
+	  continue;
+	}
+      parsed[i]->fd = fd;
+      insert_fdir(parsed[i]);
     }
-  parsed->fd = fd;
-
-  insert_fdir(parsed);
 }
