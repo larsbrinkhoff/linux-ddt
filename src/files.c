@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <sys/stat.h>
 #include "files.h"
 #include "jobs.h"
 
@@ -198,7 +199,10 @@ void delete_file(char *name)
   char *p = parse_fname(&parsed, name);
   fputs("\r\n", stderr);
   if (p == NULL)
-    return;
+    {
+      free(parsed.name);
+      return;
+    }
 
   errno = 0;
   if (unlinkat(parsed.dirfd, parsed.name, 0) == -1)
@@ -374,3 +378,53 @@ void typeout_fname(struct file *f)
 	  f->name,
 	  f->fd);
 }
+
+void print_file(char *arg)
+{
+  struct file parsed = { strdup(deffile.name), deffile.devfd, deffile.dirfd, -1 };
+  char *p = parse_fname(&parsed, arg);
+  fputs("\r\n", stderr);
+  if (p == NULL)
+    goto leave;
+
+  int fd;
+
+  errno = 0;
+  while ((fd = openat(parsed.dirfd, parsed.name, 0, O_RDONLY)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      goto error;
+  parsed.fd = fd;
+
+  struct stat fstatus;
+  errno = 0;
+  if (fstat(fd, &fstatus) == -1)
+    goto close1;
+
+  if ((fstatus.st_mode & S_IFMT) != S_IFREG)
+    {
+      fprintf(stderr, "%s - regular files only\r\n", parsed.name);
+      goto close1;
+    }
+
+  fprintf(stderr, "Would print %ld bytes\r\n", fstatus.st_size);
+
+  setdeffile(&parsed);
+
+  int terrno;
+ close1:
+  terrno = errno;
+  errno = 0;
+  close(fd);
+  errno = terrno;
+  error:
+  if (errno)
+    errout(parsed.name);
+ leave:
+  free(parsed.name);
+}
+

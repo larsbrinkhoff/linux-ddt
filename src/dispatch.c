@@ -311,10 +311,21 @@ void kreat (void)
   done = 1;
 }
 
+void print (void)
+{
+  print_file(prefix);
+  done = 1;
+}
+
 static void quotech (void)
 {
   character = term_read();
-  echo (character);
+  if (nprefix < PREFIX_MAXBUF)
+    {
+      prefix[nprefix++] = character;
+      prefix[nprefix] = 0;
+      echo (character);
+    }
 }
 
 static void step (void)
@@ -371,6 +382,7 @@ void dispatch_init (void)
   plain[CTRL_('N')] = step;
   plain[CTRL_('P')] = proceed;
   plain[CTRL_('Q')] = quotech;
+  plain[CTRL_('R')] = print;
   alt[CTRL_('S')] = asuser;
   plain[CTRL_('X')] = stop;
   alt[CTRL_('X')] = stop;

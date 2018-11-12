@@ -11,6 +11,7 @@ void delete_file(char *name);
 void cwd(char *arg);
 void nfdir(char *arg);
 void ofdir(char *arg);
+void print_file(char *arg);
 
 void typeout_fname(struct file *f);
 

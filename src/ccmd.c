@@ -55,6 +55,7 @@ struct builtin builtins[] =
    {"new", "<prgm> <opt jcl>", "invoke <prgm>. If already using <pgrm>, make a second copy", new},
    {"nfdir", "<dir1>,<dir2>...", "add file directories to search list", nfdir},
    {"ofdir", "<dir1>,<dir2>...", "remove file directories from search list", ofdir},
+   {"print", "<file>", "print file [^r]", print_file},
    {"proced", "", "same as proceed", proced},
    {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
    {"retry", "<prgm> <opt jcl>", "invoke <prgm>, clobbering any old copy", retry},
