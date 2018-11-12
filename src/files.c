@@ -229,6 +229,31 @@ void cwd(char *arg)
     errout(parsed.name);
 }
 
+static int equivdirs(struct file *a, struct file *b)
+{
+  return (strcmp(a->name, b->name) == 0
+	  && a->dirfd == b->dirfd
+	  && a->devfd == b->devfd);
+}
+
+static void delete_fdir(struct file *fdir)
+{
+  int i;
+  for (i = 0; i < QTY_FDIRS; i++)
+    {
+      if (equivdirs(fdir, finddirs[i]))
+	break;
+    }
+  if (i == QTY_FDIRS)
+    return;
+
+  for (i++; i < QTY_FDIRS; i++)
+    {
+      finddirs[i-1] = finddirs[i];
+    }
+  finddirs[i-1] = 0;
+}
+
 static void insert_fdir(struct file *fdir)
 {
   struct file *ins = NULL;
@@ -239,11 +264,14 @@ static void insert_fdir(struct file *fdir)
       t = finddirs[i];
       finddirs[i] = ins;
       if (t == 0) break;
-      if (strcmp(t->name, fdir->name) == 0
-	  && t->dirfd == fdir->dirfd
-	  && t->devfd == fdir->devfd)
+      if (equivdirs(t, fdir))
 	break;
     }
+}
+
+void ofdir(char *arg)
+{
+  fprintf(stderr, "\r\nWould ofdir here\r\n");
 }
 
 void nfdir(char *arg)
