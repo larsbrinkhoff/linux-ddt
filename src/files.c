@@ -269,11 +269,6 @@ static void insert_fdir(struct file *fdir)
     }
 }
 
-void ofdir(char *arg)
-{
-  fprintf(stderr, "\r\nWould ofdir here\r\n");
-}
-
 static void parse_fnames(struct file *parsed[], int n, char *arg)
 {
   char *p;
@@ -307,6 +302,19 @@ static void parse_fnames(struct file *parsed[], int n, char *arg)
   }
   if (*p)
     fprintf(stderr, " ign args >%d? ", n);
+}
+
+void ofdir(char *arg)
+{
+  struct file *parsed[QTY_FDIRS] = { 0 };
+
+  fputs("\r\n", stderr);
+
+  parse_fnames(parsed, QTY_FDIRS, arg);
+
+  for (int i = 0; i < QTY_FDIRS; i++)
+    if (parsed[i] != NULL)
+      delete_fdir(parsed[i]);
 }
 
 void nfdir(char *arg)
