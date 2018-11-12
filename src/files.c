@@ -11,15 +11,15 @@
 
 #define PATH_MAX 4096
 
+#define QTY_DEVICES 1
 #define QTY_SYSDIRS 4
 #define QTY_FDIRS 8
 
-struct file dsk = {"dsk", -1, -1, -1};
-struct file sysdirs[QTY_SYSDIRS] = {
-				    {"bin", -1, -1, -1},
-				    {"sbin", -1, -1, -1},
-				    {"usr/bin", -1, -1, -1},
-				    {"usr/sbin", -1, -1, -1}
+struct file devices[QTY_DEVICES] = { {"dsk", -1, -1, -1} };
+struct file sysdirs[QTY_SYSDIRS] = { {"bin", -1, -1, -1},
+				     {"sbin", -1, -1, -1},
+				     {"usr/bin", -1, -1, -1},
+				     {"usr/sbin", -1, -1, -1}
 };
 
 struct file *finddirs[QTY_FDIRS] = { 0 };
@@ -54,18 +54,18 @@ void files_init(void)
      errout("/");
      exit(1);
     }
-  dsk.fd = dsk.dirfd = dsk.devfd = fd;
+  devices[DEVDSK].fd = devices[DEVDSK].dirfd = devices[DEVDSK].devfd = fd;
 
   for (int i = 0; i < QTY_SYSDIRS; i++)
     {
-      sysdirs[i].fd = open_dirpath(dsk.fd, sysdirs[i].name);
+      sysdirs[i].fd = open_dirpath(devices[DEVDSK].fd, sysdirs[i].name);
       if (errno)
 	{
 	  errout(sysdirs[i].name);
 	  continue;
 	}
-      sysdirs[i].devfd = dsk.fd;
-      sysdirs[i].dirfd = dsk.fd;
+      sysdirs[i].devfd = devices[DEVDSK].fd;
+      sysdirs[i].dirfd = devices[DEVDSK].fd;
     }
   
   msname.name = malloc(PATH_MAX);
@@ -76,7 +76,7 @@ void files_init(void)
       exit(1);
     }
 
-  msname.fd = open_dirpath(dsk.fd, msname.name);
+  msname.fd = open_dirpath(devices[DEVDSK].fd, msname.name);
   if (errno)
     {
       errout(msname.name);
@@ -84,10 +84,10 @@ void files_init(void)
     }
 
   hsname.name = strdup(msname.name);
-  hsname.devfd = dsk.fd;
+  hsname.devfd = devices[DEVDSK].fd;
   hsname.dirfd = msname.dirfd;
 
-  hsname.fd = open_dirpath(dsk.fd, hsname.name);
+  hsname.fd = open_dirpath(devices[DEVDSK].fd, hsname.name);
   if (errno)
     {
       errout(hsname.name);
@@ -143,7 +143,7 @@ char *parse_fname(struct file *f, char *str)
 	      fprintf(stderr, " %s unknown device? ", str);
 	      return NULL;
 	    }
-	  f->devfd = dsk.fd;
+	  f->devfd = devices[DEVDSK].fd;
 	  break;
 	case ';':
 	  *eow = 0;
@@ -181,7 +181,7 @@ char *parse_fname(struct file *f, char *str)
 
 void delete_file(char *name)
 {
-  struct file parsed = { 0, dsk.fd, msname.fd, -1 };
+  struct file parsed = { 0, devices[DEVDSK].fd, msname.fd, -1 };
   char *p = parse_fname(&parsed, name);
   fputs("\r\n", stderr);
   if (p == NULL)
@@ -199,7 +199,7 @@ void delete_file(char *name)
 
 void cwd(char *arg)
 {
-  struct file parsed = { 0, dsk.fd, -1, -1 };
+  struct file parsed = { 0, devices[DEVDSK].fd, -1, -1 };
 
   fputs("\r\n", stderr);
 
@@ -276,7 +276,7 @@ static void parse_fnames(struct file *parsed[], int n, char *arg)
     parsed[i] = (struct file *)malloc(sizeof(struct file));
 
     parsed[i]->name = 0;
-    parsed[i]->devfd = dsk.fd;
+    parsed[i]->devfd = devices[DEVDSK].fd;
     parsed[i]->dirfd = msname.fd;
     parsed[i]->fd = -1;
 
@@ -340,4 +340,24 @@ void nfdir(char *arg)
       parsed[i]->fd = fd;
       insert_fdir(parsed[i]);
     }
+}
+
+void typeout_fname(struct file *f)
+{
+  int i;
+  for (int i = 0; i < QTY_DEVICES; i++)
+    {
+      if (f->devfd == devices[i].fd)
+	{
+	  fprintf(stderr, "%s: ", devices[i].name);
+	  break;
+	}
+    }
+  if (i == QTY_DEVICES)
+    fprintf(stderr, "%d: ", devices[i].fd);
+
+  fprintf(stderr, "%d; %s (%d)",
+	  f->dirfd,
+	  f->name,
+	  f->fd);
 }

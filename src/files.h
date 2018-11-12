@@ -12,6 +12,10 @@ void cwd(char *arg);
 void nfdir(char *arg);
 void ofdir(char *arg);
 
-extern struct file dsk;
+void typeout_fname(struct file *f);
+
+extern struct file devices[];
 extern struct file hsname;
 extern struct file msname;
+
+#define DEVDSK 0
