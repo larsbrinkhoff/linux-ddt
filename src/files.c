@@ -26,6 +26,7 @@ struct file *finddirs[QTY_FDIRS] = { 0 };
 
 struct file hsname = { 0, -1, -1, -1 };
 struct file msname = { 0, -1, -1, -1 };
+struct file deffile = { 0, -1, -1, -1 };
 
 int open_dirpath(int dirfd, char *path)
 {
@@ -93,6 +94,10 @@ void files_init(void)
       errout(hsname.name);
       exit(1);
     }
+
+  deffile.name = strdup(".foo.");
+  deffile.devfd = devices[DEVDSK].fd;
+  deffile.dirfd = hsname.fd;
 }
 
 struct file *findprog(char *name)
@@ -179,22 +184,30 @@ char *parse_fname(struct file *f, char *str)
   return str + strlen(str);
 }
 
+static void setdeffile(struct file *f)
+{
+  if (deffile.name) free(deffile.name);
+  deffile.name = f->name;
+  deffile.devfd = f->devfd;
+  deffile.dirfd = f->dirfd;
+}
+
 void delete_file(char *name)
 {
-  struct file parsed = { 0, devices[DEVDSK].fd, msname.fd, -1 };
+  struct file parsed = { strdup(deffile.name), deffile.devfd, deffile.dirfd, -1 };
   char *p = parse_fname(&parsed, name);
   fputs("\r\n", stderr);
   if (p == NULL)
     return;
-  if (parsed.name == NULL)
-    {
-      fprintf(stderr, " no defaulting yet\r\n");
-      return;
-    }
+
   errno = 0;
   if (unlinkat(parsed.dirfd, parsed.name, 0) == -1)
-    errout(0);
-  free(parsed.name);
+    {
+      errout(parsed.name);
+      free(parsed.name);
+    }
+  else
+    setdeffile(&parsed);
 }
 
 void cwd(char *arg)
