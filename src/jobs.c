@@ -490,7 +490,7 @@ void load_prog(char *name)
 	errout("child openat");
 	return;
       }
-  currjob->proc.ufname.devfd = dsk.fd;
+  currjob->proc.ufname.devfd = devices[DEVDSK].fd;
   currjob->proc.ufname.dirfd = msname.fd;
   currjob->proc.ufname.fd = fd;
 
@@ -691,13 +691,14 @@ void lfile(char *unused)
       fputs(" job? ", stderr);
       return;
     }
+  fputs("\r\n", stderr);
   if (currjob->state == '-')
     {
-      fputs("\r\n not loaded? \r\n", stderr);
+      fputs(" not loaded? \r\n", stderr);
       return;
     }
-  fprintf(stderr, "\r\n%d: %d; %s (%d)\r\n",
-	  currjob->proc.ufname.devfd, currjob->proc.ufname.dirfd, currjob->proc.ufname.name, currjob->proc.ufname.fd);
+  typeout_fname(&(currjob->proc.ufname));
+  fputs("\r\n", stderr);
 }
 
 void forget(char *unused)

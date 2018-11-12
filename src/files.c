@@ -11,54 +11,93 @@
 
 #define PATH_MAX 4096
 
-struct file dsk = {"dsk", -1, -1, -1};
+#define QTY_DEVICES 1
 #define QTY_SYSDIRS 4
-struct file sysdirs[QTY_SYSDIRS] = {
-				    {"bin", -1, -1, -1},
-				    {"sbin", -1, -1, -1},
-				    {"usr/bin", -1, -1, -1},
-				    {"usr/sbin", -1, -1, -1}
+#define QTY_FDIRS 8
+
+struct file devices[QTY_DEVICES] = { {"dsk", -1, -1, -1} };
+struct file sysdirs[QTY_SYSDIRS] = { {"bin", -1, -1, -1},
+				     {"sbin", -1, -1, -1},
+				     {"usr/bin", -1, -1, -1},
+				     {"usr/sbin", -1, -1, -1}
 };
+
+struct file *finddirs[QTY_FDIRS] = { 0 };
 
 struct file hsname = { 0, -1, -1, -1 };
 struct file msname = { 0, -1, -1, -1 };
+struct file deffile = { 0, -1, -1, -1 };
+
+int open_dirpath(int dirfd, char *path)
+{
+  int fd;
+
+  errno = 0;
+
+  while ((fd = openat(dirfd, path, O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      return -1;
+  return fd;
+}
 
 void files_init(void)
 {
   int fd;
-  errno = 0;
-  fd = openat(AT_FDCWD, "/",
-	      O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
-  dsk.fd = dsk.dirfd = dsk.devfd = fd;
+
+  fd = open_dirpath(AT_FDCWD, "/");
   if (errno)
-    errout("/");
+    {
+     errout("/");
+     exit(1);
+    }
+  devices[DEVDSK].fd = devices[DEVDSK].dirfd = devices[DEVDSK].devfd = fd;
 
   for (int i = 0; i < QTY_SYSDIRS; i++)
     {
-      errno = 0;
-      sysdirs[i].fd = openat(dsk.fd, sysdirs[i].name,
-			     O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+      sysdirs[i].fd = open_dirpath(devices[DEVDSK].fd, sysdirs[i].name);
       if (errno)
 	{
 	  errout(sysdirs[i].name);
 	  continue;
 	}
-      sysdirs[i].devfd = dsk.fd;
-      sysdirs[i].dirfd = dsk.fd;
+      sysdirs[i].devfd = devices[DEVDSK].fd;
+      sysdirs[i].dirfd = devices[DEVDSK].fd;
     }
   
   msname.name = malloc(PATH_MAX);
   errno = 0;
   if (getcwd(msname.name, PATH_MAX) == 0)
     {
-      errout("cwd");
+      errout("getcwd");
       exit(1);
     }
-  errno = 0;
-  msname.fd = openat(AT_FDCWD, msname.name,
-		     O_PATH | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+
+  msname.fd = open_dirpath(devices[DEVDSK].fd, msname.name);
   if (errno)
-    errout("openat cwd");
+    {
+      errout(msname.name);
+      exit(1);
+    }
+
+  hsname.name = strdup(msname.name);
+  hsname.devfd = devices[DEVDSK].fd;
+  hsname.dirfd = msname.dirfd;
+
+  hsname.fd = open_dirpath(devices[DEVDSK].fd, hsname.name);
+  if (errno)
+    {
+      errout(hsname.name);
+      exit(1);
+    }
+
+  deffile.name = strdup(".foo.");
+  deffile.devfd = devices[DEVDSK].fd;
+  deffile.dirfd = hsname.fd;
 }
 
 struct file *findprog(char *name)
@@ -71,13 +110,267 @@ struct file *findprog(char *name)
       if ((fd = faccessat(sysdirs[i].fd, name, X_OK, 0)) != -1)
 	return &(sysdirs[i]);
     }
+  for (int i = 0; i < QTY_FDIRS; i++)
+    {
+      if (finddirs[i] == NULL)
+	break;
+      if ((fd = faccessat(finddirs[i]->fd, name, X_OK, 0)) != -1)
+	{
+	  fprintf(stderr, " %s;\r\n", finddirs[i]->name);
+	  return finddirs[i];
+	}
+    }
+  if ((fd = faccessat(msname.fd, name, X_OK, 0)) != -1)
+    return &msname;
   return 0;
+}
+
+static inline char *skip_ws(char *buf)
+{
+  while (*buf == ' ')
+    buf++;
+  return buf;
+}
+
+char *parse_fname(struct file *f, char *str)
+{
+  char *eow;
+  str = skip_ws(str);
+
+  while ((eow = strpbrk(str, ":; ,")) != NULL)
+    {
+      switch (*eow)
+	{
+	case ':':
+	  *eow = 0;
+	  if (strcmp(str, "dsk") != 0)
+	    {
+	      fprintf(stderr, " %s unknown device? ", str);
+	      return NULL;
+	    }
+	  f->devfd = devices[DEVDSK].fd;
+	  break;
+	case ';':
+	  *eow = 0;
+	  fprintf(stderr, " found dir %s; (NSY) ", str);
+	  f->dirfd = -1;
+	  return NULL;
+	  break;
+	case ' ':
+	  *eow = 0;
+	  if (f->name) free(f->name);
+	  f->name = strdup(str);
+	  break;
+	case ',':
+	  *eow = 0;
+	  if ((eow - str) > 1)
+	    {
+	      if (f->name) free(f->name);
+	      f->name = strdup(str);
+	    }
+	  return ++eow;
+	  break;
+	}
+      str = ++eow;
+      str = skip_ws(str);
+    }
+
+  if (*str)
+    {
+      if (f->name) free(f->name);
+      f->name = strdup(str);
+    }
+
+  return str + strlen(str);
+}
+
+static void setdeffile(struct file *f)
+{
+  if (deffile.name) free(deffile.name);
+  deffile.name = f->name;
+  deffile.devfd = f->devfd;
+  deffile.dirfd = f->dirfd;
 }
 
 void delete_file(char *name)
 {
+  struct file parsed = { strdup(deffile.name), deffile.devfd, deffile.dirfd, -1 };
+  char *p = parse_fname(&parsed, name);
   fputs("\r\n", stderr);
+  if (p == NULL)
+    return;
+
   errno = 0;
-  if (unlinkat(msname.fd, name, 0) == -1)
-    errout(0);
+  if (unlinkat(parsed.dirfd, parsed.name, 0) == -1)
+    {
+      errout(parsed.name);
+      free(parsed.name);
+    }
+  else
+    setdeffile(&parsed);
+}
+
+void cwd(char *arg)
+{
+  struct file parsed = { 0, devices[DEVDSK].fd, -1, -1 };
+
+  fputs("\r\n", stderr);
+
+  char *p = parse_fname(&parsed, arg);
+  if (p == NULL)
+    return;
+      
+  if (parsed.name == NULL)
+    {
+      parsed.name = strdup(hsname.name);
+      parsed.devfd = hsname.devfd;
+      parsed.dirfd = hsname.dirfd;
+    }
+
+  int fd;
+  fd = open_dirpath(msname.fd, parsed.name);
+  if (!errno)
+    {
+      if (msname.name) free(msname.name);
+      msname.name = parsed.name;
+      msname.devfd = parsed.devfd;
+      msname.dirfd = parsed.dirfd;
+      if (msname.fd != -1) close(msname.fd);
+      msname.fd = fd;
+    }
+  else
+    errout(parsed.name);
+}
+
+static int equivdirs(struct file *a, struct file *b)
+{
+  return (strcmp(a->name, b->name) == 0
+	  && a->dirfd == b->dirfd
+	  && a->devfd == b->devfd);
+}
+
+static void delete_fdir(struct file *fdir)
+{
+  int i;
+  for (i = 0; i < QTY_FDIRS; i++)
+    {
+      if (equivdirs(fdir, finddirs[i]))
+	break;
+    }
+  if (i == QTY_FDIRS)
+    return;
+
+  for (i++; i < QTY_FDIRS; i++)
+    {
+      finddirs[i-1] = finddirs[i];
+    }
+  finddirs[i-1] = 0;
+}
+
+static void insert_fdir(struct file *fdir)
+{
+  struct file *ins = NULL;
+  struct file *t = fdir;
+  for (int i = 0; i < QTY_FDIRS; i++)
+    {
+      ins = t;
+      t = finddirs[i];
+      finddirs[i] = ins;
+      if (t == 0) break;
+      if (equivdirs(t, fdir))
+	break;
+    }
+}
+
+static void parse_fnames(struct file *parsed[], int n, char *arg)
+{
+  char *p;
+  for (int i = 0; i < n; i++) {
+    parsed[i] = (struct file *)malloc(sizeof(struct file));
+
+    parsed[i]->name = 0;
+    parsed[i]->devfd = devices[DEVDSK].fd;
+    parsed[i]->dirfd = msname.fd;
+    parsed[i]->fd = -1;
+
+    p = parse_fname(parsed[i], arg);
+    if (p == NULL)
+      {
+	free(parsed[i]);
+	parsed[i] = NULL;
+	continue;
+      }
+
+    if (parsed[i]->name == NULL)
+      {
+	fprintf(stderr, " arg %d noname? ", i+1);
+	free(parsed[i]);
+	parsed[i] = NULL;
+	continue;
+      }
+    if (*p)
+      arg = p;
+    else
+      break;
+  }
+  if (*p)
+    fprintf(stderr, " ign args >%d? ", n);
+}
+
+void ofdir(char *arg)
+{
+  struct file *parsed[QTY_FDIRS] = { 0 };
+
+  fputs("\r\n", stderr);
+
+  parse_fnames(parsed, QTY_FDIRS, arg);
+
+  for (int i = 0; i < QTY_FDIRS; i++)
+    if (parsed[i] != NULL)
+      delete_fdir(parsed[i]);
+}
+
+void nfdir(char *arg)
+{
+  struct file *parsed[QTY_FDIRS] = { 0 };
+
+  fputs("\r\n", stderr);
+
+  parse_fnames(parsed, QTY_FDIRS, arg);
+
+  for (int i = QTY_FDIRS; --i >= 0; )
+    {
+      if (parsed[i] == NULL)
+	continue;
+
+      int fd;
+      fd = open_dirpath(parsed[i]->dirfd, parsed[i]->name);
+      if (errno)
+	{
+	  errout(parsed[i]->name);
+	  continue;
+	}
+      parsed[i]->fd = fd;
+      insert_fdir(parsed[i]);
+    }
+}
+
+void typeout_fname(struct file *f)
+{
+  int i;
+  for (int i = 0; i < QTY_DEVICES; i++)
+    {
+      if (f->devfd == devices[i].fd)
+	{
+	  fprintf(stderr, "%s: ", devices[i].name);
+	  break;
+	}
+    }
+  if (i == QTY_DEVICES)
+    fprintf(stderr, "%d: ", devices[i].fd);
+
+  fprintf(stderr, "%d; %s (%d)",
+	  f->dirfd,
+	  f->name,
+	  f->fd);
 }

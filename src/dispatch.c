@@ -250,6 +250,17 @@ static void stop (void)
   done = 1;
 }
 
+void asuser (void)
+{
+  if (altmodes > 1)
+    {
+      cwd(prefix);
+    }
+  else
+    fprintf(stderr, "\r\nWould cause next command to run as user: %s\r\n", prefix);
+  done = 1;
+}
+
 void backspace (void)
 {
   if (altmodes)
@@ -360,6 +371,7 @@ void dispatch_init (void)
   plain[CTRL_('N')] = step;
   plain[CTRL_('P')] = proceed;
   plain[CTRL_('Q')] = quotech;
+  alt[CTRL_('S')] = asuser;
   plain[CTRL_('X')] = stop;
   alt[CTRL_('X')] = stop;
   plain[ALTMODE] = altmode;
