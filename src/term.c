@@ -3,11 +3,13 @@
 #include <unistd.h>
 #include <termios.h>
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #include <signal.h>
 #include <errno.h>
 
 struct termios def_termios;
 static struct termios new_termios;
+struct winsize winsz;
 
 void term_restore (void)
 {
@@ -17,6 +19,23 @@ void term_restore (void)
 void term_raw (void)
 {
   tcsetattr (0, TCSANOW, &new_termios);
+}
+
+static void setwinsz(void)
+{
+  winsz.ws_row = 24;
+  winsz.ws_col = 80;
+  winsz.ws_xpixel = 0;
+  winsz.ws_ypixel = 0;
+  errno = 0;
+  ioctl(STDIN_FILENO, TIOCGWINSZ, &winsz);
+}
+
+static void winch_handler(int sig)
+{
+  int terrno = errno;
+  setwinsz();
+  errno = terrno;
 }
 
 void term_init (void)
@@ -53,6 +72,10 @@ void term_init (void)
   new_termios = def_termios;
   cfmakeraw (&new_termios);
   term_raw ();
+
+  setwinsz();
+  if (errno)
+    perror("tiocgwinsz");
 }
 
 int term_read (void)
