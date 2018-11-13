@@ -317,6 +317,17 @@ void print (void)
   done = 1;
 }
 
+void files (void)
+{
+  if (altmodes > 1)
+    fprintf(stderr, "\r\n Would do hairy list of cwd\r\n");
+  else if (altmodes)
+    list_files(prefix, 0);
+  else
+    list_files(prefix, 1);
+  done = 1;
+}
+
 static void quotech (void)
 {
   character = term_read();
@@ -376,6 +387,7 @@ void dispatch_init (void)
     }
 
   plain[CTRL_('D')] = flushin;
+  plain[CTRL_('F')] = files;
   plain[BACKSPACE] = backspace;
   plain[CTRL_('K')] = kreat;
   plain[FORMFEED] = formfeed;

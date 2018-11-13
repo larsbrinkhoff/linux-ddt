@@ -46,6 +46,7 @@ struct builtin builtins[] =
    {"job", "", "create or select job [$j]", select_job},
    {"kill", "", "kill current job [$^x.]", kill_currjob},
    {"lfile", "", "print filename of last file loaded", lfile},
+   {"listf", "<dir>", "list files [^f]", listf},
    {"listj", "", "list jobs [$$v]", listj},
    {"load", "<file>", "load file into core [$l]", load_prog},
    {"login", "<name>", "log in [$u]", login_as},

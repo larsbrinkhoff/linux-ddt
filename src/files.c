@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include "files.h"
 #include "jobs.h"
 
@@ -204,8 +205,12 @@ char *parse_fname(struct file *f, char *str)
 
 static void setdeffile(struct file *f)
 {
-  if (deffile.name) free(deffile.name);
-  deffile.name = f->name;
+  if (f->name)
+    {
+      if (deffile.name) free(deffile.name);
+      deffile.name = f->name;
+    }
+
   deffile.devfd = f->devfd;
   deffile.dirfd = f->dirfd;
 }
@@ -438,3 +443,66 @@ void print_file(char *arg)
   free(parsed.name);
 }
 
+void list_files(char *arg, int setdefp)
+{
+  struct file parsed = { 0, deffile.devfd, deffile.dirfd, -1 };
+
+  fputs("\r\n", stderr);
+
+  if (arg && *arg)
+    if (parse_fname(&parsed, arg) == NULL)
+      goto error;
+
+  typeout_fname(&parsed);
+  fputs("\r\n", stderr);
+
+  if ((parsed.fd = open_ro(parsed.dirfd, ".")) == -1)
+    goto error;
+
+  struct stat fstatus;
+  errno = 0;
+  if (fstat(parsed.fd, &fstatus) == -1)
+    goto close1;
+
+  if ((fstatus.st_mode & S_IFMT) != S_IFDIR)
+    {
+      fprintf(stderr, " directories only\r\n");
+      goto close1;
+    }
+
+  DIR *d;
+  struct dirent *entry;
+  errno = 0;
+  if ((d = fdopendir(parsed.fd)) == NULL)
+    goto error;
+
+  for (errno = 0; (entry = readdir(d)) != NULL; errno = 0)
+    {
+      if (strcmp(entry->d_name, ".") == 0
+	  || strcmp(entry->d_name, "..") == 0)
+	continue;
+      fprintf(stderr, "  %s\r\n", entry->d_name);
+    }
+  if (errno)
+    errout("readdir");
+
+  closedir(d);
+
+  if (setdefp)
+    setdeffile(&parsed);
+
+  int terrno;
+ close1:
+  terrno = errno;
+  close(parsed.fd);
+  errno = terrno;
+
+ error:
+  if (errno)
+    errout(parsed.name);
+}
+
+void listf(char *arg)
+{
+  list_files(arg, 1);
+}

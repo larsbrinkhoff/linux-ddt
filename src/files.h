@@ -12,6 +12,8 @@ void cwd(char *arg);
 void nfdir(char *arg);
 void ofdir(char *arg);
 void print_file(char *arg);
+void listf(char *arg);
+void list_files(char *arg, int setdefp);
 
 void typeout_fname(struct file *f);
 
