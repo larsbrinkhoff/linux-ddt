@@ -399,10 +399,12 @@ void typeout_fname(struct file *f)
 void print_file(char *arg)
 {
   struct file parsed = { strdup(deffile.name), deffile.devfd, deffile.dirfd, -1 };
-  char *p = parse_fname(&parsed, arg);
+
   fputs("\r\n", stderr);
-  if (p == NULL)
-    goto leave;
+
+  if (arg && *arg)
+    if (parse_fname(&parsed, arg) == NULL)
+      goto error;
 
   if ((parsed.fd = open_ro(parsed.dirfd, parsed.name)) == -1)
     goto error;
@@ -421,6 +423,7 @@ void print_file(char *arg)
   fprintf(stderr, "Would print %s (%ld bytes)\r\n", parsed.name, fstatus.st_size);
 
   setdeffile(&parsed);
+  parsed.name = 0;
 
   int terrno;
  close1:
@@ -432,7 +435,6 @@ void print_file(char *arg)
   if (errno)
     errout(parsed.name);
 
- leave:
   free(parsed.name);
 }
 
