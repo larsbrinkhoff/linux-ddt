@@ -29,6 +29,23 @@ struct file hsname = { 0, -1, -1, -1 };
 struct file msname = { 0, -1, -1, -1 };
 struct file deffile = { 0, -1, -1, -1 };
 
+int open_ro(int dirfd, char *path)
+{
+  int fd;
+
+  errno = 0;
+
+  while ((fd = openat(dirfd, path, 0, O_RDONLY)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      return -1;
+  return fd;
+}
+
 int open_dirpath(int dirfd, char *path)
 {
   int fd;
@@ -387,22 +404,12 @@ void print_file(char *arg)
   if (p == NULL)
     goto leave;
 
-  int fd;
-
-  errno = 0;
-  while ((fd = openat(parsed.dirfd, parsed.name, 0, O_RDONLY)) == -1)
-    if (errno == EINTR)
-      {
-	errno = 0;
-	continue;
-      }
-    else
-      goto error;
-  parsed.fd = fd;
+  if ((parsed.fd = open_ro(parsed.dirfd, parsed.name)) == -1)
+    goto error;
 
   struct stat fstatus;
   errno = 0;
-  if (fstat(fd, &fstatus) == -1)
+  if (fstat(parsed.fd, &fstatus) == -1)
     goto close1;
 
   if ((fstatus.st_mode & S_IFMT) != S_IFREG)
@@ -411,19 +418,20 @@ void print_file(char *arg)
       goto close1;
     }
 
-  fprintf(stderr, "Would print %ld bytes\r\n", fstatus.st_size);
+  fprintf(stderr, "Would print %s (%ld bytes)\r\n", parsed.name, fstatus.st_size);
 
   setdeffile(&parsed);
 
   int terrno;
  close1:
   terrno = errno;
-  errno = 0;
-  close(fd);
+  close(parsed.fd);
   errno = terrno;
-  error:
+
+ error:
   if (errno)
     errout(parsed.name);
+
  leave:
   free(parsed.name);
 }
