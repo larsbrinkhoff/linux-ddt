@@ -8,6 +8,7 @@
 #include <termios.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <time.h>
 #include "files.h"
 #include "jobs.h"
 
@@ -499,7 +500,13 @@ void list_files(char *arg, int setdefp)
     if ((fstatus.st_mode & S_IFMT) == S_IFLNK)
       fprintf(stderr, "symlinkhere\r\n");
     else
-      fprintf(stderr, "%-6ld date:%ld\r\n", fstatus.st_blocks, fstatus.st_mtim.tv_sec);
+      {
+	struct tm *t = localtime(&(fstatus.st_mtim.tv_sec));
+	fprintf(stderr, "%-6ld %02d/%02d/%04d %02d:%02d:%02d\r\n",
+		fstatus.st_blocks,
+		t->tm_mon+1, t->tm_mday, t->tm_year + 1900,
+		t->tm_hour, t->tm_min, t->tm_sec);
+      }
     free(namelist[i]);
   }
   free(namelist);
