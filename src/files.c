@@ -489,9 +489,9 @@ void list_files(char *arg, int setdefp)
       case S_IFBLK:  ftypec = 'b'; break;
       case S_IFCHR:  ftypec = 'c'; break;
       case S_IFDIR:  ftypec = 'd'; break;
-      case S_IFIFO:  ftypec = 'p'; break;
+      case S_IFIFO:  ftypec = 'F'; break;
       case S_IFLNK:  ftypec = 'l'; break;
-      case S_IFREG:  ftypec = 'f'; break;
+      case S_IFREG:  ftypec = '0'; break;
       case S_IFSOCK: ftypec = 's'; break;
       default: ftypec = '?'; break;
       }
