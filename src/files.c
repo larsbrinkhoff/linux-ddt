@@ -470,23 +470,39 @@ void list_files(char *arg, int setdefp)
       goto close1;
     }
 
-  DIR *d;
-  struct dirent *entry;
-  errno = 0;
-  if ((d = fdopendir(parsed.fd)) == NULL)
+  struct dirent **namelist;
+  int n;
+  if ((n = scandirat(parsed.dirfd, ".", &namelist, NULL, versionsort)) == -1)
     goto error;
 
-  for (errno = 0; (entry = readdir(d)) != NULL; errno = 0)
-    {
-      if (strcmp(entry->d_name, ".") == 0
-	  || strcmp(entry->d_name, "..") == 0)
+  for (int i = 0; i < n; i++) {
+    errno = 0;
+    if (fstatat(parsed.dirfd, namelist[i]->d_name, &fstatus, 0) == -1)
+      {
 	continue;
-      fprintf(stderr, "  %s\r\n", entry->d_name);
-    }
-  if (errno)
-    errout("readdir");
+      }
 
-  closedir(d);
+    char ftypec;
+    switch (fstatus.st_mode & S_IFMT)
+      {
+      case S_IFBLK:  ftypec = 'b'; break;
+      case S_IFCHR:  ftypec = 'c'; break;
+      case S_IFDIR:  ftypec = 'd'; break;
+      case S_IFIFO:  ftypec = 'p'; break;
+      case S_IFLNK:  ftypec = 'l'; break;
+      case S_IFREG:  ftypec = 'f'; break;
+      case S_IFSOCK: ftypec = 's'; break;
+      default: ftypec = '?'; break;
+      }
+
+    fprintf(stderr, " %c %-16s ", ftypec, namelist[i]->d_name);
+    if ((fstatus.st_mode & S_IFMT) == S_IFLNK)
+      fprintf(stderr, "symlinkhere\r\n");
+    else
+      fprintf(stderr, "%-6ld date:%ld\r\n", fstatus.st_blocks, fstatus.st_mtim.tv_sec);
+    free(namelist[i]);
+  }
+  free(namelist);
 
   if (setdefp)
     setdeffile(&parsed);
