@@ -21,6 +21,8 @@
 #define QTY_SYSDIRS 4
 #define QTY_FDIRS 8
 
+char printbuf[4096];
+
 struct file devices[QTY_DEVICES] = { {"dsk", -1, -1, -1} };
 struct file sysdirs[QTY_SYSDIRS] = { {"bin", -1, -1, -1},
 				     {"sbin", -1, -1, -1},
@@ -429,13 +431,12 @@ void print_file(char *arg)
       goto close1;
     }
 
-  char buf[4096];
   ssize_t amt;
   int col = 0;
   int maxcol = winsz.ws_col - 3;
   int lines = 0;
   int maxlines = winsz.ws_row - 2;
-  for (errno = 0; (amt = read(parsed.fd, buf, 4096)); errno = 0)
+  for (errno = 0; (amt = read(parsed.fd, printbuf, 4096)); errno = 0)
     {
       if (amt == -1)
 	{
@@ -463,7 +464,7 @@ void print_file(char *arg)
 	      col = 0;
 	      lines++;
 	    }
-	  switch (buf[i])
+	  switch (printbuf[i])
 	    {
 	    case '\t':
 	      putchar(' ');
@@ -481,9 +482,9 @@ void print_file(char *arg)
 	      lines = winsz.ws_row;
 	      break;
 	    default:
-	      if (isprint(buf[i]))
+	      if (isprint(printbuf[i]))
 		{
-		  putchar(buf[i]);
+		  putchar(printbuf[i]);
 		  col++;
 		}
 	      else
