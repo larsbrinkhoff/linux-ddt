@@ -9,6 +9,7 @@
 #include "files.h"
 #include "jobs.h"
 #include "user.h"
+#include "term.h"
 
 void help(char *);
 void version(char *);
@@ -24,6 +25,9 @@ char helptext[] =
   "\r\n You are typing at \"DDT\", a top level command interpreter/debugger for Linux.\r\n"
   " DDT commands start with a colon and are usually terminated by a carriage return.\r\n"
   " Type :? <cr> to list them.\r\n"
+  " Type :login <your name> to log in.\r\n"
+  " To list a file directory, type :listf <directory name><cr>.\r\n"
+  " To print a file, type :print <file name><cr>.\r\n"
   " If a command is not recognized, it is tried as the name of a system program to run.\r\n"
   " Type control-Z to return to DDT after running a program\r\n"
   "(Some return to DDT by themselves when done, printing \":kill\").\r\n";
@@ -46,6 +50,7 @@ struct builtin builtins[] =
    {"job", "", "create or select job [$j]", select_job},
    {"kill", "", "kill current job [$^x.]", kill_currjob},
    {"lfile", "", "print filename of last file loaded", lfile},
+   {"listf", "<dir>", "list files [^f]", listf},
    {"listj", "", "list jobs [$$v]", listj},
    {"load", "<file>", "load file into core [$l]", load_prog},
    {"login", "<name>", "log in [$u]", login_as},
@@ -55,6 +60,7 @@ struct builtin builtins[] =
    {"new", "<prgm> <opt jcl>", "invoke <prgm>. If already using <pgrm>, make a second copy", new},
    {"nfdir", "<dir1>,<dir2>...", "add file directories to search list", nfdir},
    {"ofdir", "<dir1>,<dir2>...", "remove file directories from search list", ofdir},
+   {"print", "<file>", "print file [^r]", print_file},
    {"proced", "", "same as proceed", proced},
    {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
    {"retry", "<prgm> <opt jcl>", "invoke <prgm>, clobbering any old copy", retry},
@@ -151,11 +157,6 @@ void version(char *arg)
 	  VERSION);
   if (!ttyname_r(0, ttyname, 32))
     fprintf(stderr, "%s\r\n", ttyname);
-}
-
-void clear(char *arg)
-{
-  fprintf(stderr, "\033[2J\033[H");
 }
 
 void set_monmode(char *unused)

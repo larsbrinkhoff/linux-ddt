@@ -719,12 +719,6 @@ void self(char *unused)
   fputs("\r\n", stderr);
 }
 
-int uquery(char *text)
-{
-  fprintf(stderr, "--%s--", text);
-  return (term_read() == ' ');
-}
-
 void run_(char *jname, char *arg, int genj)
 {
   struct job *j;

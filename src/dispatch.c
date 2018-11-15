@@ -311,10 +311,32 @@ void kreat (void)
   done = 1;
 }
 
+void print (void)
+{
+  print_file(prefix);
+  done = 1;
+}
+
+void files (void)
+{
+  if (altmodes > 1)
+    fprintf(stderr, "\r\n Would do hairy list of cwd\r\n");
+  else if (altmodes)
+    list_files(prefix, 0);
+  else
+    list_files(prefix, 1);
+  done = 1;
+}
+
 static void quotech (void)
 {
   character = term_read();
-  echo (character);
+  if (nprefix < PREFIX_MAXBUF)
+    {
+      prefix[nprefix++] = character;
+      prefix[nprefix] = 0;
+      echo (character);
+    }
 }
 
 static void step (void)
@@ -365,12 +387,14 @@ void dispatch_init (void)
     }
 
   plain[CTRL_('D')] = flushin;
+  plain[CTRL_('F')] = files;
   plain[BACKSPACE] = backspace;
   plain[CTRL_('K')] = kreat;
   plain[FORMFEED] = formfeed;
   plain[CTRL_('N')] = step;
   plain[CTRL_('P')] = proceed;
   plain[CTRL_('Q')] = quotech;
+  plain[CTRL_('R')] = print;
   alt[CTRL_('S')] = asuser;
   plain[CTRL_('X')] = stop;
   alt[CTRL_('X')] = stop;

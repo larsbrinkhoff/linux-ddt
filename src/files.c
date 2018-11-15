@@ -6,14 +6,23 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <time.h>
+#include <ctype.h>
+#include <sys/ioctl.h>
 #include "files.h"
 #include "jobs.h"
+#include "term.h"
 
 #define PATH_MAX 4096
+#define PBUFSIZE 4096
 
 #define QTY_DEVICES 1
 #define QTY_SYSDIRS 4
 #define QTY_FDIRS 8
+
+char printbuf[PBUFSIZE];
 
 struct file devices[QTY_DEVICES] = { {"dsk", -1, -1, -1} };
 struct file sysdirs[QTY_SYSDIRS] = { {"bin", -1, -1, -1},
@@ -27,6 +36,23 @@ struct file *finddirs[QTY_FDIRS] = { 0 };
 struct file hsname = { 0, -1, -1, -1 };
 struct file msname = { 0, -1, -1, -1 };
 struct file deffile = { 0, -1, -1, -1 };
+
+int open_ro(int dirfd, char *path)
+{
+  int fd;
+
+  errno = 0;
+
+  while ((fd = openat(dirfd, path, 0, O_RDONLY)) == -1)
+    if (errno == EINTR)
+      {
+	errno = 0;
+	continue;
+      }
+    else
+      return -1;
+  return fd;
+}
 
 int open_dirpath(int dirfd, char *path)
 {
@@ -186,8 +212,12 @@ char *parse_fname(struct file *f, char *str)
 
 static void setdeffile(struct file *f)
 {
-  if (deffile.name) free(deffile.name);
-  deffile.name = f->name;
+  if (f->name)
+    {
+      if (deffile.name) free(deffile.name);
+      deffile.name = f->name;
+    }
+
   deffile.devfd = f->devfd;
   deffile.dirfd = f->dirfd;
 }
@@ -198,7 +228,10 @@ void delete_file(char *name)
   char *p = parse_fname(&parsed, name);
   fputs("\r\n", stderr);
   if (p == NULL)
-    return;
+    {
+      free(parsed.name);
+      return;
+    }
 
   errno = 0;
   if (unlinkat(parsed.dirfd, parsed.name, 0) == -1)
@@ -373,4 +406,198 @@ void typeout_fname(struct file *f)
 	  f->dirfd,
 	  f->name,
 	  f->fd);
+}
+
+void print_file(char *arg)
+{
+  struct file parsed = { strdup(deffile.name), deffile.devfd, deffile.dirfd, -1 };
+
+  fputs("\r\n", stderr);
+
+  if (arg && *arg)
+    if (parse_fname(&parsed, arg) == NULL)
+      goto error;
+
+  if ((parsed.fd = open_ro(parsed.dirfd, parsed.name)) == -1)
+    goto error;
+
+  struct stat fstatus;
+  errno = 0;
+  if (fstat(parsed.fd, &fstatus) == -1)
+    goto close1;
+
+  if ((fstatus.st_mode & S_IFMT) != S_IFREG)
+    {
+      fprintf(stderr, "%s - regular files only\r\n", parsed.name);
+      goto close1;
+    }
+
+  ssize_t amt;
+  int col = 0;
+  int maxcol = winsz.ws_col - 3;
+  int lines = 0;
+  int maxlines = winsz.ws_row - 2;
+  for (errno = 0; (amt = read(parsed.fd, printbuf, PBUFSIZE)); errno = 0)
+    {
+      if (amt == -1)
+	{
+	  errout(parsed.name);
+	  goto close1;
+	}
+      for (int i = 0; i < amt; i++)
+	{
+	  if (lines > maxlines)
+	    {
+	      if (uquery("More"))
+		{
+		  col = 0;
+		  lines = 0;
+		}
+	      else
+		{
+		  fputs("\r\n", stderr);
+		goto close1;
+		}
+	    }
+	  else if (col > maxcol)
+	    {
+	      fputs("!\r\n", stdout);
+	      col = 0;
+	      lines++;
+	    }
+	  switch (printbuf[i])
+	    {
+	    case '\t':
+	      putchar(' ');
+	      col++;
+	      break;
+	    case '\n':
+	      puts("\r");
+	      col = 0;
+	      lines++;
+	      break;
+	    case '\r':
+	      break;
+	    case '\f':
+	      col = 0;
+	      lines = winsz.ws_row;
+	      break;
+	    default:
+	      if (isprint(printbuf[i]))
+		{
+		  putchar(printbuf[i]);
+		  col++;
+		}
+	      else
+		fputc(07, stderr);
+	    }
+	}
+    }
+
+  setdeffile(&parsed);
+  parsed.name = 0;
+
+  int terrno;
+ close1:
+  terrno = errno;
+  close(parsed.fd);
+  errno = terrno;
+
+ error:
+  if (errno)
+    errout(parsed.name);
+
+  free(parsed.name);
+}
+
+void list_files(char *arg, int setdefp)
+{
+  struct file parsed = { 0, deffile.devfd, deffile.dirfd, -1 };
+
+  fputs("\r\n", stderr);
+
+  if (arg && *arg)
+    if (parse_fname(&parsed, arg) == NULL)
+      goto error;
+
+  typeout_fname(&parsed);
+  fputs("\r\n", stderr);
+
+  if ((parsed.fd = open_ro(parsed.dirfd, ".")) == -1)
+    goto error;
+
+  struct stat fstatus;
+  errno = 0;
+  if (fstatat(parsed.fd, "", &fstatus, AT_EMPTY_PATH) == -1)
+    goto close1;
+
+  if ((fstatus.st_mode & S_IFMT) != S_IFDIR)
+    {
+      fprintf(stderr, " directories only\r\n");
+      goto close1;
+    }
+
+  char linkname[PATH_MAX];
+  struct dirent **namelist;
+  int n;
+  if ((n = scandirat(parsed.dirfd, ".", &namelist, NULL, versionsort)) == -1)
+    goto error;
+
+  for (int i = 0; i < n; i++) {
+    errno = 0;
+    if (fstatat(parsed.dirfd, namelist[i]->d_name, &fstatus, AT_SYMLINK_NOFOLLOW) == -1)
+      {
+	continue;
+      }
+
+    char ftypec;
+    switch (fstatus.st_mode & S_IFMT)
+      {
+      case S_IFBLK:  ftypec = 'b'; break;
+      case S_IFCHR:  ftypec = 'c'; break;
+      case S_IFDIR:  ftypec = 'd'; break;
+      case S_IFIFO:  ftypec = 'F'; break;
+      case S_IFLNK:  ftypec = 'l'; break;
+      case S_IFREG:  ftypec = '0'; break;
+      case S_IFSOCK: ftypec = 's'; break;
+      default: ftypec = '?'; break;
+      }
+
+    fprintf(stderr, " %c %-16s ", ftypec, namelist[i]->d_name);
+    if ((fstatus.st_mode & S_IFMT) == S_IFLNK)
+      {
+	if (readlinkat(parsed.dirfd, namelist[i]->d_name, linkname, PATH_MAX) != -1)
+	  fprintf(stderr, "%s\r\n", linkname);
+	else
+	  errout("symlinkerr");
+      }
+    else
+      {
+	struct tm *t = localtime(&(fstatus.st_mtim.tv_sec));
+	fprintf(stderr, "%-6ld %02d/%02d/%04d %02d:%02d:%02d\r\n",
+		fstatus.st_blocks,
+		t->tm_mon+1, t->tm_mday, t->tm_year + 1900,
+		t->tm_hour, t->tm_min, t->tm_sec);
+      }
+    free(namelist[i]);
+  }
+  free(namelist);
+
+  if (setdefp)
+    setdeffile(&parsed);
+
+  int terrno;
+ close1:
+  terrno = errno;
+  close(parsed.fd);
+  errno = terrno;
+
+ error:
+  if (errno)
+    errout(parsed.name);
+}
+
+void listf(char *arg)
+{
+  list_files(arg, 1);
 }
