@@ -7,7 +7,6 @@ struct builtin {
 
 void init_ccmd(void);
 void ccmd(char *cmdline);
-void clear(char *);
 void set_ddtmode(char *);
 void set_monmode(char *);
 

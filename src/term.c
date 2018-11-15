@@ -99,3 +99,14 @@ int term_read (void)
 
   return ch;
 }
+
+void clear(char *arg)
+{
+  fprintf(stderr, "\033[2J\033[H");
+}
+
+int uquery(char *text)
+{
+  fprintf(stderr, "--%s--", text);
+  return (term_read() == ' ');
+}

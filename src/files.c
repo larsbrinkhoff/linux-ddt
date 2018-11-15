@@ -9,8 +9,11 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <time.h>
+#include <ctype.h>
+#include <sys/ioctl.h>
 #include "files.h"
 #include "jobs.h"
+#include "term.h"
 
 #define PATH_MAX 4096
 
@@ -426,7 +429,68 @@ void print_file(char *arg)
       goto close1;
     }
 
-  fprintf(stderr, "Would print %s (%ld bytes)\r\n", parsed.name, fstatus.st_size);
+  char buf[4096];
+  ssize_t amt;
+  int col = 0;
+  int maxcol = winsz.ws_col - 3;
+  int lines = 0;
+  int maxlines = winsz.ws_row - 2;
+  for (errno = 0; (amt = read(parsed.fd, buf, 4096)); errno = 0)
+    {
+      if (amt == -1)
+	{
+	  errout(parsed.name);
+	  goto close1;
+	}
+      for (int i = 0; i < amt; i++)
+	{
+	  if (lines > maxlines)
+	    {
+	      if (uquery("More"))
+		{
+		  col = 0;
+		  lines = 0;
+		}
+	      else
+		{
+		  fputs("\r\n", stderr);
+		goto close1;
+		}
+	    }
+	  else if (col > maxcol)
+	    {
+	      fputs("!\r\n", stdout);
+	      col = 0;
+	      lines++;
+	    }
+	  switch (buf[i])
+	    {
+	    case '\t':
+	      putchar(' ');
+	      col++;
+	      break;
+	    case '\n':
+	      puts("\r");
+	      col = 0;
+	      lines++;
+	      break;
+	    case '\r':
+	      break;
+	    case '\f':
+	      col = 0;
+	      lines = winsz.ws_row;
+	      break;
+	    default:
+	      if (isprint(buf[i]))
+		{
+		  putchar(buf[i]);
+		  col++;
+		}
+	      else
+		fputc(07, stderr);
+	    }
+	}
+    }
 
   setdeffile(&parsed);
   parsed.name = 0;
@@ -462,7 +526,7 @@ void list_files(char *arg, int setdefp)
 
   struct stat fstatus;
   errno = 0;
-  if (fstat(parsed.fd, &fstatus) == -1)
+  if (fstatat(parsed.fd, "", &fstatus, AT_EMPTY_PATH) == -1)
     goto close1;
 
   if ((fstatus.st_mode & S_IFMT) != S_IFDIR)
@@ -471,6 +535,7 @@ void list_files(char *arg, int setdefp)
       goto close1;
     }
 
+  char linkname[PATH_MAX];
   struct dirent **namelist;
   int n;
   if ((n = scandirat(parsed.dirfd, ".", &namelist, NULL, versionsort)) == -1)
@@ -478,7 +543,7 @@ void list_files(char *arg, int setdefp)
 
   for (int i = 0; i < n; i++) {
     errno = 0;
-    if (fstatat(parsed.dirfd, namelist[i]->d_name, &fstatus, 0) == -1)
+    if (fstatat(parsed.dirfd, namelist[i]->d_name, &fstatus, AT_SYMLINK_NOFOLLOW) == -1)
       {
 	continue;
       }
@@ -498,7 +563,12 @@ void list_files(char *arg, int setdefp)
 
     fprintf(stderr, " %c %-16s ", ftypec, namelist[i]->d_name);
     if ((fstatus.st_mode & S_IFMT) == S_IFLNK)
-      fprintf(stderr, "symlinkhere\r\n");
+      {
+	if (readlinkat(parsed.dirfd, namelist[i]->d_name, linkname, PATH_MAX) != -1)
+	  fprintf(stderr, "%s\r\n", linkname);
+	else
+	  errout("symlinkerr");
+      }
     else
       {
 	struct tm *t = localtime(&(fstatus.st_mtim.tv_sec));

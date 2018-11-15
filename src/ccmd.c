@@ -9,6 +9,7 @@
 #include "files.h"
 #include "jobs.h"
 #include "user.h"
+#include "term.h"
 
 void help(char *);
 void version(char *);
@@ -24,6 +25,9 @@ char helptext[] =
   "\r\n You are typing at \"DDT\", a top level command interpreter/debugger for Linux.\r\n"
   " DDT commands start with a colon and are usually terminated by a carriage return.\r\n"
   " Type :? <cr> to list them.\r\n"
+  " Type :login <your name> to log in.\r\n"
+  " To list a file directory, type :listf <directory name><cr>.\r\n"
+  " To print a file, type :print <file name><cr>.\r\n"
   " If a command is not recognized, it is tried as the name of a system program to run.\r\n"
   " Type control-Z to return to DDT after running a program\r\n"
   "(Some return to DDT by themselves when done, printing \":kill\").\r\n";
@@ -153,11 +157,6 @@ void version(char *arg)
 	  VERSION);
   if (!ttyname_r(0, ttyname, 32))
     fprintf(stderr, "%s\r\n", ttyname);
-}
-
-void clear(char *arg)
-{
-  fprintf(stderr, "\033[2J\033[H");
 }
 
 void set_monmode(char *unused)

@@ -16,8 +16,8 @@ clobber: clean
 main.o: main.c term.h dispatch.h jobs.h files.h
 dispatch.o: dispatch.c term.h ccmd.h jobs.h user.h files.h debugger.h
 term.o: term.c
-ccmd.o: ccmd.c ccmd.h jobs.h user.h files.h
+ccmd.o: ccmd.c ccmd.h jobs.h user.h files.h term.h
 jobs.o: jobs.c jobs.h user.h term.h files.h debugger.h
 user.o: user.c jobs.h files.h
-files.o: files.c files.h jobs.h
+files.o: files.c files.h jobs.h term.h
 debugger.o: debugger.c jobs.h files.h
