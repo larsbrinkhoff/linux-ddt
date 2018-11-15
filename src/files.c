@@ -16,12 +16,13 @@
 #include "term.h"
 
 #define PATH_MAX 4096
+#define PBUFSIZE 4096
 
 #define QTY_DEVICES 1
 #define QTY_SYSDIRS 4
 #define QTY_FDIRS 8
 
-char printbuf[4096];
+char printbuf[PBUFSIZE];
 
 struct file devices[QTY_DEVICES] = { {"dsk", -1, -1, -1} };
 struct file sysdirs[QTY_SYSDIRS] = { {"bin", -1, -1, -1},
@@ -436,7 +437,7 @@ void print_file(char *arg)
   int maxcol = winsz.ws_col - 3;
   int lines = 0;
   int maxlines = winsz.ws_row - 2;
-  for (errno = 0; (amt = read(parsed.fd, printbuf, 4096)); errno = 0)
+  for (errno = 0; (amt = read(parsed.fd, printbuf, PBUFSIZE)); errno = 0)
     {
       if (amt == -1)
 	{
