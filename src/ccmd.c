@@ -31,6 +31,13 @@ char helptext[] =
   " Type control-Z to return to DDT after running a program\r\n"
   "(Some return to DDT by themselves when done, printing \":kill\").\r\n";
 
+struct builtin {
+  char *name;
+  char *arghelp;
+  char *desc;
+  void (*fn) (char *arg);
+};
+
 struct builtin builtins[] =
   {
    {"clear", "", "clear screen [^L]", clear},
