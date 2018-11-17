@@ -327,7 +327,7 @@ void files (void)
   done = 1;
 }
 
-static void quotech (void)
+static void chquote (void)
 {
   character = term_read();
   if (nprefix < PREFIX_MAXBUF)
@@ -397,7 +397,7 @@ void dispatch_init (void)
   plain[FORMFEED] = formfeed;
   plain[CTRL_('N')] = step;
   plain[CTRL_('P')] = proceed;
-  plain[CTRL_('Q')] = quotech;
+  plain[CTRL_('Q')] = chquote;
   plain[CTRL_('R')] = print;
   alt[CTRL_('S')] = asuser;
   plain[CTRL_('X')] = stop;
