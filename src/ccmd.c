@@ -6,7 +6,6 @@
 #include <sys/utsname.h>
 #include <termios.h>
 #include "ccmd.h"
-#include "files.h"
 #include "jobs.h"
 #include "user.h"
 #include "term.h"

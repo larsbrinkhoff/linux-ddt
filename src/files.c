@@ -11,7 +11,6 @@
 #include <time.h>
 #include <ctype.h>
 #include <sys/ioctl.h>
-#include "files.h"
 #include "jobs.h"
 #include "term.h"
 

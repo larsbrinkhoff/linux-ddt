@@ -5,7 +5,6 @@
 #include <ctype.h>
 #include "term.h"
 #include "ccmd.h"
-#include "files.h"
 #include "jobs.h"
 #include "user.h"
 #include "debugger.h"

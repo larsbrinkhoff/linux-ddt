@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <termios.h>
-#include "files.h"
 #include "jobs.h"
 
 char *_runame = 0;

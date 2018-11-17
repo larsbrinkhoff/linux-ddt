@@ -2,7 +2,6 @@
 #include <termios.h>
 #include "term.h"
 #include "dispatch.h"
-#include "files.h"
 #include "jobs.h"
 
 static void cleanup (void)
