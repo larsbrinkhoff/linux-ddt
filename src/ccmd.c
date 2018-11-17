@@ -20,7 +20,7 @@ static void new(char *arg);
 
 #define ALTMODE 033
 
-char helptext[] = 
+const char helptext[] =
   "\r\n You are typing at \"DDT\", a top level command interpreter/debugger for Linux.\r\n"
   " DDT commands start with a colon and are usually terminated by a carriage return.\r\n"
   " Type :? <cr> to list them.\r\n"
@@ -32,9 +32,9 @@ char helptext[] =
   "(Some return to DDT by themselves when done, printing \":kill\").\r\n";
 
 struct builtin {
-  char *name;
-  char *arghelp;
-  char *desc;
+  const char *name;
+  const char *arghelp;
+  const char *desc;
   void (*fn) (char *arg);
 };
 
