@@ -379,6 +379,11 @@ void dispatch_init (void)
       plain[i] = arg;
     }
 
+  for (i = 'A'; i <= 'Z'; i++)
+    {
+      plain[i] = arg;
+    }
+
   for (i = '0'; i <= '9'; i++)
     {
       plain[i] = arg;
