@@ -146,8 +146,7 @@ void version(char *arg)
   struct utsname luname = { 0 };
   char ttyname[32];
 
-  if (uname(&luname))
-    return;			/* fix me - note syscall failure */
+  uname(&luname);
 
   fprintf(stderr, "\r\n%s %s.%s. DDT.%s.\r\n",
 	  luname.nodename,
