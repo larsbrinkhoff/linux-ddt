@@ -5,7 +5,6 @@
 #include <ctype.h>
 #include "term.h"
 #include "ccmd.h"
-#include "files.h"
 #include "jobs.h"
 #include "user.h"
 #include "debugger.h"
@@ -16,11 +15,13 @@
 const char *prompt = "*";
 int monmode;
 
-static int altmodes;
 static char prefix[PREFIX_MAXBUF+1];
+static char arg4str[PREFIX_MAXBUF+1];
 static int nprefix;
+static int narg4;
 static char character;
 static int done;
+static int altmodes;
 
 static void (**fn) (void);
 static void (*plain[256]) (void);
@@ -59,6 +60,17 @@ static void arg (void)
     fputc(BELL, stderr);
 }
 
+static void arg4 (void)
+{
+  if (narg4 < PREFIX_MAXBUF)
+    {
+      arg4str[narg4++] = character;
+      arg4str[narg4] = 0;
+    }
+  else
+    fputc(BELL, stderr);
+}
+
 static void altmode (void)
 {
   altmodes++;
@@ -67,18 +79,20 @@ static void altmode (void)
 
 static void rubout (void)
 {
-  if (!(altmodes || nprefix)) {
+  if (altmodes)
+    {
+      if (narg4)
+	arg4str[--narg4] = 0;
+      else if (!--altmodes)
+	fn = plain;
+    }
+  else if (nprefix)
+    prefix[--nprefix] = 0;
+  else {
     fputs("?? ", stderr);
     return;
   }
   fprintf (stderr, "\010 \010");
-  if (altmodes)
-    {
-      if (!--altmodes)
-	fn = plain;
-    }
-  else
-      nprefix--;
 }
 
 static char *suffix (void)
@@ -194,6 +208,12 @@ static void formfeed (void)
 {
   clear(NULL);
   fputs (prefix, stderr);
+  if (altmodes > 1)
+    fputc('$', stderr);
+  if (altmodes)
+    fputc('$', stderr);
+  if (narg4)
+    fputs (arg4str, stderr);
 }
 
 static void job (void)
@@ -284,7 +304,9 @@ void backspace (void)
 void flushin (void)
 {
   fputs(" xxx? ", stderr);
+  altmodes = 0;
   prefix[0] = nprefix = 0;
+  arg4str[0] = narg4 = 0;
 }
 
 void load (void)
@@ -328,7 +350,7 @@ void files (void)
   done = 1;
 }
 
-static void quotech (void)
+static void chquote (void)
 {
   character = term_read();
   if (nprefix < PREFIX_MAXBUF)
@@ -380,10 +402,15 @@ void dispatch_init (void)
       plain[i] = arg;
     }
 
+  for (i = 'A'; i <= 'Z'; i++)
+    {
+      plain[i] = arg;
+    }
+
   for (i = '0'; i <= '9'; i++)
     {
       plain[i] = arg;
-      alt[i] = arg;
+      alt[i] = arg4;
     }
 
   plain[CTRL_('D')] = flushin;
@@ -391,9 +418,10 @@ void dispatch_init (void)
   plain[BACKSPACE] = backspace;
   plain[CTRL_('K')] = kreat;
   plain[FORMFEED] = formfeed;
+  alt[FORMFEED] = formfeed;
   plain[CTRL_('N')] = step;
   plain[CTRL_('P')] = proceed;
-  plain[CTRL_('Q')] = quotech;
+  plain[CTRL_('Q')] = chquote;
   plain[CTRL_('R')] = print;
   alt[CTRL_('S')] = asuser;
   plain[CTRL_('X')] = stop;
@@ -441,6 +469,7 @@ void prompt_and_execute (void)
     }
   altmodes = 0;
   prefix[0] = nprefix = 0;
+  arg4str[0] = narg4 = 0;
   fn = plain;
 
   do

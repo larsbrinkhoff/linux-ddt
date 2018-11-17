@@ -11,7 +11,6 @@
 #include <time.h>
 #include <ctype.h>
 #include <sys/ioctl.h>
-#include "files.h"
 #include "jobs.h"
 #include "term.h"
 
@@ -71,6 +70,15 @@ int open_dirpath(int dirfd, char *path)
   return fd;
 }
 
+static void setfile(struct file *target, char *name, int devfd, int dirfd)
+{
+  if (target->name)
+    free(target->name);
+  target->name = name;
+  target->devfd = devfd;
+  target->dirfd = dirfd;
+}
+
 void files_init(void)
 {
   int fd;
@@ -110,9 +118,7 @@ void files_init(void)
       exit(1);
     }
 
-  hsname.name = strdup(msname.name);
-  hsname.devfd = devices[DEVDSK].fd;
-  hsname.dirfd = msname.dirfd;
+  setfile(&hsname, strdup(msname.name), devices[DEVDSK].fd, msname.dirfd);
 
   hsname.fd = open_dirpath(devices[DEVDSK].fd, hsname.name);
   if (errno)
@@ -121,9 +127,7 @@ void files_init(void)
       exit(1);
     }
 
-  deffile.name = strdup(".foo.");
-  deffile.devfd = devices[DEVDSK].fd;
-  deffile.dirfd = hsname.fd;
+  setfile(&deffile, strdup(".foo."), devices[DEVDSK].fd, hsname.fd);
 }
 
 struct file *findprog(char *name)
@@ -254,20 +258,13 @@ void cwd(char *arg)
     return;
       
   if (parsed.name == NULL)
-    {
-      parsed.name = strdup(hsname.name);
-      parsed.devfd = hsname.devfd;
-      parsed.dirfd = hsname.dirfd;
-    }
+    setfile(&parsed, strdup(hsname.name), hsname.devfd, hsname.dirfd);
 
   int fd;
   fd = open_dirpath(msname.fd, parsed.name);
   if (!errno)
     {
-      if (msname.name) free(msname.name);
-      msname.name = parsed.name;
-      msname.devfd = parsed.devfd;
-      msname.dirfd = parsed.dirfd;
+      setfile(&msname, parsed.name, parsed.devfd, parsed.dirfd);
       if (msname.fd != -1) close(msname.fd);
       msname.fd = fd;
     }

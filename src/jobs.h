@@ -1,3 +1,5 @@
+#include "files.h"
+
 struct process {
   // struct process *next;
   struct file ufname;

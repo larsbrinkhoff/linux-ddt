@@ -10,7 +10,6 @@
 #include <errno.h>
 #include <termios.h>
 #include <ctype.h>
-#include "files.h"
 #include "jobs.h"
 #include "user.h"
 #include "term.h"

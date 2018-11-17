@@ -4,7 +4,6 @@
 #include <termios.h>
 #include <sys/ptrace.h>
 #include <sys/reg.h>
-#include "files.h"
 #include "jobs.h"
 
 void typeout_pc(struct job *j)

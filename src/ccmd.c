@@ -6,7 +6,6 @@
 #include <sys/utsname.h>
 #include <termios.h>
 #include "ccmd.h"
-#include "files.h"
 #include "jobs.h"
 #include "user.h"
 #include "term.h"
@@ -21,7 +20,7 @@ static void new(char *arg);
 
 #define ALTMODE 033
 
-char helptext[] = 
+const char helptext[] =
   "\r\n You are typing at \"DDT\", a top level command interpreter/debugger for Linux.\r\n"
   " DDT commands start with a colon and are usually terminated by a carriage return.\r\n"
   " Type :? <cr> to list them.\r\n"
@@ -31,6 +30,13 @@ char helptext[] =
   " If a command is not recognized, it is tried as the name of a system program to run.\r\n"
   " Type control-Z to return to DDT after running a program\r\n"
   "(Some return to DDT by themselves when done, printing \":kill\").\r\n";
+
+struct builtin {
+  const char *name;
+  const char *arghelp;
+  const char *desc;
+  void (*fn) (char *arg);
+};
 
 struct builtin builtins[] =
   {
@@ -147,8 +153,7 @@ void version(char *arg)
   struct utsname luname = { 0 };
   char ttyname[32];
 
-  if (uname(&luname))
-    return;			/* fix me - note syscall failure */
+  uname(&luname);
 
   fprintf(stderr, "\r\n%s %s.%s. DDT.%s.\r\n",
 	  luname.nodename,
