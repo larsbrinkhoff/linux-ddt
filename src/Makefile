@@ -19,6 +19,6 @@ dispatch.o: dispatch.c $(INCL) term.h ccmd.h user.h debugger.h
 term.o: term.c
 ccmd.o: ccmd.c ccmd.h $(INCL) user.h term.h
 jobs.o: jobs.c $(INCL) user.h term.h debugger.h
-user.o: user.c $(INCL)
+user.o: user.c $(INCL) term.h
 files.o: files.c $(INCL) term.h
 debugger.o: debugger.c $(INCL)

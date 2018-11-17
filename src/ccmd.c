@@ -1,9 +1,7 @@
 #define _GNU_SOURCE
-#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
-#include <sys/utsname.h>
 #include <termios.h>
 #include "ccmd.h"
 #include "jobs.h"
@@ -11,12 +9,9 @@
 #include "term.h"
 
 void help(char *);
-void version(char *);
 void list_builtins(char *);
 static void retry(char *arg);
 static void new(char *arg);
-
-#define VERSION "0"
 
 #define ALTMODE 033
 
@@ -51,6 +46,7 @@ struct builtin builtins[] =
    {"go", "<start addr (opt)>", "start inferior [$g]", go},
    {"gzp", "<start addr (opt)>", "start job without tty [$g^z^p]", gzp},
    {"help", "", "print out basic information", help},
+   {"intest", "", "execute init file, etc.", intest},
    {"jcl", "<line>", "set job control string", jcl},
    {"jclprt", "", "print the job control strong", jclprt},
    {"job", "", "create or select job [$j]", select_job},
@@ -66,6 +62,7 @@ struct builtin builtins[] =
    {"new", "<prgm> <opt jcl>", "invoke <prgm>. If already using <pgrm>, make a second copy", new},
    {"nfdir", "<dir1>,<dir2>...", "add file directories to search list", nfdir},
    {"ofdir", "<dir1>,<dir2>...", "remove file directories from search list", ofdir},
+   {"outtest", "", "perform actions normally associated with logging out", outtest},
    {"print", "<file>", "print file [^r]", print_file},
    {"proced", "", "same as proceed", proced},
    {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
@@ -146,22 +143,6 @@ void list_builtins(char *arg)
 void help(char *arg)
 {
   fputs(helptext, stderr);
-}
-
-void version(char *arg)
-{
-  struct utsname luname = { 0 };
-  char ttyname[32];
-
-  uname(&luname);
-
-  fprintf(stderr, "\r\n%s %s.%s. DDT.%s.\r\n",
-	  luname.nodename,
-	  luname.sysname,
-	  luname.release,
-	  VERSION);
-  if (!ttyname_r(0, ttyname, 32))
-    fprintf(stderr, "%s\r\n", ttyname);
 }
 
 void set_monmode(char *unused)
