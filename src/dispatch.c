@@ -60,6 +60,21 @@ static void arg (void)
     fputc(BELL, stderr);
 }
 
+static void altarg (void)
+{
+  if (altmodes == 1
+      && nprefix < PREFIX_MAXBUF
+      && narg4 == 0)
+    {
+      prefix[nprefix++] = character | 0x80;
+      prefix[nprefix] = 0;
+      altmodes = 0;
+      fn = plain;
+    }
+  else
+    fputc(BELL, stderr);
+}
+
 static void arg4 (void)
 {
   if (narg4 < PREFIX_MAXBUF)
@@ -87,12 +102,16 @@ static void rubout (void)
 	fn = plain;
     }
   else if (nprefix)
-    prefix[--nprefix] = 0;
+    {
+      if (prefix[--nprefix] & 0x80)
+	fputs ("\010 \010", stderr);
+      prefix[nprefix] = 0;
+    }
   else {
     fputs("?? ", stderr);
     return;
   }
-  fprintf (stderr, "\010 \010");
+  fputs ("\010 \010", stderr);
 }
 
 static char *suffix (void)
@@ -207,7 +226,12 @@ static void print_args (void)
 static void formfeed (void)
 {
   clear(NULL);
-  fputs (prefix, stderr);
+  for (int i = 0; prefix[i]; i++)
+    {
+      if (prefix[i] & 0x80)
+	fputc('$', stderr);
+      fputc(prefix[i] & 0x7f, stderr);
+    }
   if (altmodes > 1)
     fputc('$', stderr);
   if (altmodes)
@@ -413,6 +437,7 @@ void dispatch_init (void)
       alt[i] = arg4;
     }
 
+
   plain[CTRL_('D')] = flushin;
   plain[CTRL_('F')] = files;
   plain[BACKSPACE] = backspace;
@@ -430,6 +455,17 @@ void dispatch_init (void)
   alt[ALTMODE] = altmode;
   plain[RUBOUT] = rubout;
   alt[RUBOUT] = rubout;
+
+  plain['*'] = arg;
+  plain['+'] = arg;
+  plain[','] = arg;
+  plain['-'] = arg;
+  plain['.'] = arg;
+  alt['*'] = altarg;
+  alt['+'] = altarg;
+  alt[','] = altarg;
+  alt['-'] = altarg;
+  alt['.'] = altarg;
 
   plain[':'] = colon;
   alt[':'] = colon;
