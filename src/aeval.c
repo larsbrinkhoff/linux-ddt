@@ -38,7 +38,7 @@ char *evalfactor(char *expr, uint64_t *value)
 
 static char *logictail(char *expr, uint64_t *value)
 {
-  uint64_t result;
+  uint64_t result = 0;
   switch (*expr)
     {
     case '#':
@@ -59,11 +59,12 @@ static char *logictail(char *expr, uint64_t *value)
 
 char *evallogic(char *expr, uint64_t *value)
 {
-  uint64_t result;
+  uint64_t result = 0;
   
   if ((expr = evalfactor(expr, &result)) == NULL)
     return expr;
-  expr = logictail(expr, &result);
+  if ((expr = logictail(expr, &result)) == NULL)
+    return expr;
 
   *value = result;
 
@@ -72,8 +73,8 @@ char *evallogic(char *expr, uint64_t *value)
 
 static char *termtail(char *expr, uint64_t *value)
 {
-  uint64_t result;
-  switch (*expr)
+  uint64_t result = 0;
+  switch ((unsigned char)*expr)
     {
     case '*':
       if ((expr = evallogic(++expr, &result)) == NULL)
@@ -85,6 +86,11 @@ static char *termtail(char *expr, uint64_t *value)
 	return expr;
       *value = *value / result;
       break;
+    case '*' + 0x80:
+      if ((expr = evallogic(++expr, &result)) == NULL)
+    	return expr;
+      *value = (uint64_t) ((double)(*value) * (double)result);
+      break;
     default:
       return expr;
     }
@@ -93,11 +99,12 @@ static char *termtail(char *expr, uint64_t *value)
 
 char *evalterm(char *expr, uint64_t *value)
 {
-  uint64_t result;
+  uint64_t result = 0;
   
   if ((expr = evallogic(expr, &result)) == NULL)
     return expr;
-  expr = termtail(expr, &result);
+  if ((expr = termtail(expr, &result)) == NULL)
+    return expr;
 
   *value = result;
 
@@ -106,7 +113,7 @@ char *evalterm(char *expr, uint64_t *value)
 
 static char *exprtail(char *expr, uint64_t *value)
 {
-  uint64_t result;
+  uint64_t result = 0;
   switch (*expr)
     {
     case '+':
@@ -127,11 +134,12 @@ static char *exprtail(char *expr, uint64_t *value)
 
 char *evalexpr(char *expr, uint64_t *value)
 {
-  uint64_t result;
+  uint64_t result = 0;
 
   if ((expr = evalterm(expr, &result)) == NULL)
     return expr;
-  expr = exprtail(expr, &result);
+  if ((expr = exprtail(expr, &result)) == NULL)
+    return expr;
 
   *value = result;
 
