@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdio.h>
@@ -6,12 +7,14 @@
 #include <sys/reg.h>
 #include "jobs.h"
 
+uint64_t qreg = 0;
+
 void typeout_pc(struct job *j)
 {
-  long long pc = ptrace(PTRACE_PEEKUSER, j->proc.pid, RIP * 8, NULL);
-  long long data = ptrace(PTRACE_PEEKDATA, j->proc.pid, pc, NULL);
+  long pc = ptrace(PTRACE_PEEKUSER, j->proc.pid, RIP * 8, NULL);
+  long data = ptrace(PTRACE_PEEKDATA, j->proc.pid, pc, NULL);
 
-  fprintf(stderr, "%llx)   %llx   ", pc, data);
+  fprintf(stderr, "%lx)   %lx   ", pc, data);
 }
 
 void step_job(struct job *j)
