@@ -15,7 +15,7 @@ clobber: clean
 	$(RM) $(PROGS)
 
 main.o: main.c $(INCL) term.h dispatch.h
-dispatch.o: dispatch.c $(INCL) term.h ccmd.h user.h debugger.h
+dispatch.o: dispatch.c $(INCL) term.h ccmd.h user.h debugger.h aeval.h
 term.o: term.c
 ccmd.o: ccmd.c ccmd.h $(INCL) user.h term.h
 jobs.o: jobs.c $(INCL) user.h term.h debugger.h
