@@ -22,4 +22,4 @@ jobs.o: jobs.c $(INCL) user.h term.h debugger.h
 user.o: user.c $(INCL) term.h
 files.o: files.c $(INCL) term.h
 debugger.o: debugger.c $(INCL)
-aeval.o: aeval.c
+aeval.o: aeval.c aeval.h jobs.h
