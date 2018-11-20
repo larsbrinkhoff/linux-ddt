@@ -51,6 +51,11 @@ static char *logictail(char *expr, uint64_t *value)
 	return expr;
       *value = *value & result;
       break;
+    case '|':
+      if ((expr = evalfactor(++expr, &result)) == NULL)
+	return expr;
+      *value = *value | result;
+      break;
     default:
       return expr;
     }
