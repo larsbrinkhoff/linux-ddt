@@ -484,6 +484,8 @@ void dispatch_init (void)
   plain[RUBOUT] = rubout;
   alt[RUBOUT] = rubout;
 
+  alt[' '] = altarg;
+
   plain['*'] = arg;
   plain['+'] = arg;
   plain[','] = arg;
