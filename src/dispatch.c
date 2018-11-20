@@ -8,6 +8,7 @@
 #include "jobs.h"
 #include "user.h"
 #include "debugger.h"
+#include "aeval.h"
 
 #define PREFIX_MAXBUF 255
 #define SUFFIX_MAXBUF 255
@@ -374,6 +375,33 @@ void files (void)
   done = 1;
 }
 
+void showq (void)
+{
+  if (nprefix)
+    {
+      uint64_t n = 0;
+      char *r;
+      if ((r = evalexpr(prefix, &n))
+	  && !*r)
+	qreg = n;
+      else
+	{
+	  fputs("?? ", stderr);
+	  goto leave;
+	}
+    }
+  if (altmodes)
+    {
+      fprintf(stderr, "%f   ", (double)qreg);
+      altmodes = 0;
+    }
+  else
+    fprintf(stderr, "%lu   ", qreg);
+
+ leave:
+  prefix[nprefix] = nprefix = 0;
+}
+
 static void chquote (void)
 {
   character = term_read();
@@ -456,19 +484,26 @@ void dispatch_init (void)
   plain[RUBOUT] = rubout;
   alt[RUBOUT] = rubout;
 
+  alt[' '] = altarg;
+
   plain['*'] = arg;
   plain['+'] = arg;
   plain[','] = arg;
   plain['-'] = arg;
   plain['.'] = arg;
+  plain['!'] = arg;
   alt['*'] = altarg;
   alt['+'] = altarg;
   alt[','] = altarg;
   alt['-'] = altarg;
   alt['.'] = altarg;
+  alt['!'] = altarg;
 
   plain[':'] = colon;
   alt[':'] = colon;
+  plain['='] = showq;
+  alt['='] = showq;
+
   alt['g'] = start;
   alt['j'] = job;
   alt['l'] = load;
