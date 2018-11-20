@@ -10,6 +10,8 @@
 // TODO: errout needs to be moved out of jobs.c
 #include "jobs.h"
 
+#define ALT_(c)	((c)+0x80)
+
 int base = 10;
 
 char *evalfactor(char *expr, uint64_t *value)
@@ -91,10 +93,15 @@ static char *termtail(char *expr, uint64_t *value)
 	return expr;
       *value = *value / result;
       break;
-    case '*' + 0x80:
+    case ALT_('*'):
       if ((expr = evallogic(++expr, &result)) == NULL)
     	return expr;
       *value = (uint64_t) ((double)(*value) * (double)result);
+      break;
+    case ALT_('!'):
+      if ((expr = evallogic(++expr, &result)) == NULL)
+	return expr;
+      *value = (uint64_t) ((double)(*value) / (double)result);
       break;
     default:
       return expr;

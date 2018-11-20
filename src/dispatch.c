@@ -489,11 +489,13 @@ void dispatch_init (void)
   plain[','] = arg;
   plain['-'] = arg;
   plain['.'] = arg;
+  plain['!'] = arg;
   alt['*'] = altarg;
   alt['+'] = altarg;
   alt[','] = altarg;
   alt['-'] = altarg;
   alt['.'] = altarg;
+  alt['!'] = altarg;
 
   plain[':'] = colon;
   alt[':'] = colon;
