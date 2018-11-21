@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
-#include <termios.h>
 #include "ccmd.h"
 #include "jobs.h"
 #include "user.h"

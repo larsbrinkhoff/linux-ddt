@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <sys/ptrace.h>
 #include <errno.h>
-#include <termios.h>
 #include <ctype.h>
 #include "jobs.h"
 #include "user.h"

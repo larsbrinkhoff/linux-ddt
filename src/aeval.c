@@ -5,8 +5,6 @@
 #include <errno.h>
 #include "aeval.h"
 
-// TODO: jobs.h needs to include termios.h
-#include <termios.h>
 // TODO: errout needs to be moved out of jobs.c
 #include "jobs.h"
 

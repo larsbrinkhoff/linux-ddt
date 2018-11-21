@@ -1,3 +1,4 @@
+#include <termios.h>
 #include "files.h"
 
 struct process {
