@@ -88,6 +88,11 @@ static int builtin(char *name, char *arg)
   return 0;
 }
 
+static void crlf(void)
+{
+  fputs("\r\n", stderr);
+}
+
 static char *skip_comment(char *buf)
 {
   if (*buf == ALTMODE)
@@ -150,14 +155,14 @@ void help(char *arg)
 
 void set_monmode(char *unused)
 {
-  fputs("\r\n", stderr);
+  crlf();
   monmode = 1;
   prompt = ":";
 }
 
 void set_ddtmode(char *unused)
 {
-  fputs("\r\n", stderr);
+  crlf();
   monmode = 0;
   prompt = "*";
 }
@@ -176,12 +181,12 @@ static void new(char *arg)
 
 static void version_(char *unused)
 {
-  fputs("\r\n", stderr);
+  crlf();
   version(NULL);
 }
 
 static void sstatus_(char *unused)
 {
-  fputs("\r\n", stderr);
+  crlf();
   sstatus(NULL);
 }

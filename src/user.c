@@ -17,6 +17,11 @@ char *runame(void)
   return _runame;
 }
 
+static void crlf(void)
+{
+  fputs("\r\n", stderr);
+}
+
 void version(char *unused)
 {
   struct utsname luname = { 0 };
@@ -42,7 +47,7 @@ void sstatus(char *unused)
     fputs("unknown", stderr);
   else
     fprintf(stderr, "%.02f %.02f %.02f", lavg[0], lavg[1], lavg[2]);
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 void greet(void)
@@ -61,7 +66,7 @@ void outtest (char *ignore)
 
 void logout (char *ignore)
 {
-  fputs("\r\n", stderr);
+  crlf();
 
   if (_runame)
     outtest(NULL);
@@ -71,7 +76,7 @@ void logout (char *ignore)
 
 void intest (char *ignore)
 {
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 void login_as (char *name)

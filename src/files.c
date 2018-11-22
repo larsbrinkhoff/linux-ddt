@@ -78,6 +78,11 @@ static void setfile(struct file *target, char *name, int devfd, int dirfd)
   target->dirfd = dirfd;
 }
 
+static void crlf(void)
+{
+  fputs("\r\n", stderr);
+}
+
 void files_init(void)
 {
   int fd;
@@ -229,7 +234,7 @@ void delete_file(char *name)
 {
   struct file parsed = { strdup(deffile.name), deffile.devfd, deffile.dirfd, -1 };
   char *p = parse_fname(&parsed, name);
-  fputs("\r\n", stderr);
+  crlf();
   if (p == NULL)
     {
       free(parsed.name);
@@ -250,7 +255,7 @@ void cwd(char *arg)
 {
   struct file parsed = { 0, devices[DEVDSK].fd, -1, -1 };
 
-  fputs("\r\n", stderr);
+  crlf();
 
   char *p = parse_fname(&parsed, arg);
   if (p == NULL)
@@ -350,7 +355,7 @@ void ofdir(char *arg)
 {
   struct file *parsed[QTY_FDIRS] = { 0 };
 
-  fputs("\r\n", stderr);
+  crlf();
 
   parse_fnames(parsed, QTY_FDIRS, arg);
 
@@ -363,7 +368,7 @@ void nfdir(char *arg)
 {
   struct file *parsed[QTY_FDIRS] = { 0 };
 
-  fputs("\r\n", stderr);
+  crlf();
 
   parse_fnames(parsed, QTY_FDIRS, arg);
 
@@ -408,7 +413,7 @@ void print_file(char *arg)
 {
   struct file parsed = { strdup(deffile.name), deffile.devfd, deffile.dirfd, -1 };
 
-  fputs("\r\n", stderr);
+  crlf();
 
   if (arg && *arg)
     if (parse_fname(&parsed, arg) == NULL)
@@ -451,8 +456,8 @@ void print_file(char *arg)
 		}
 	      else
 		{
-		  fputs("\r\n", stderr);
-		goto close1;
+		  crlf();
+		  goto close1;
 		}
 	    }
 	  else if (col > maxcol)
@@ -510,14 +515,14 @@ void list_files(char *arg, int setdefp)
 {
   struct file parsed = { 0, deffile.devfd, deffile.dirfd, -1 };
 
-  fputs("\r\n", stderr);
+  crlf();
 
   if (arg && *arg)
     if (parse_fname(&parsed, arg) == NULL)
       goto error;
 
   typeout_fname(&parsed);
-  fputs("\r\n", stderr);
+  crlf();
 
   if ((parsed.fd = open_(parsed.dirfd, ".", O_RDONLY)) == -1)
     goto error;

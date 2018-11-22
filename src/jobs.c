@@ -33,6 +33,11 @@ int genjfl = 1;
 static char errstr[64];
 static int pfd1[2], pfd2[2];
 
+static void crlf(void)
+{
+  fputs("\r\n", stderr);
+}
+
 void jobs_init(void)
 {
   if (pipe(pfd1) < 0 || pipe(pfd2) < 0) {
@@ -137,7 +142,7 @@ void next_job(void)
 
 void listj(char *arg)
 {
-  fputs("\r\n", stderr);
+  crlf();
   for (struct job *j = jobs; j < jobsend; j++)
     if (j->state != 0)
       fprintf(stderr, "%c %s %c %d\r\n",
@@ -180,7 +185,7 @@ void select_job(char *jname)
   if ((j = getjob(jname)))
     {
       currjob = j;
-      fputs("\r\n", stderr);
+      crlf();
       return;
     }
 
@@ -274,7 +279,7 @@ void kill_currjob(char *arg)
 {
   if (currjob)
     {
-      fputs("\r\n", stderr);
+      crlf();
       if (kill_job(currjob))
 	{
 	  jobwait(currjob, 0, 0);
@@ -305,14 +310,14 @@ void jclprt(char *notused)
   if (currjob)
     {
       char **argv = currjob->proc.argv;
-      fputs("\r\n", stderr);
+      crlf();
       argv++;
       while (*argv)
 	{
 	  fprintf(stderr, "%s ", *argv);
 	  argv++;
 	}
-      fputs("\r\n", stderr);
+      crlf();
     }
 }
 
@@ -349,7 +354,7 @@ void jcl(char *argstr)
   while (argc < MAXARGS
 	 && ((currjob->proc.argv[argc] = strtok(NULL, " \t")) != NULL))
     currjob->proc.argv[++argc] == NULL;
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 static inline int tell_parent(void)
@@ -472,7 +477,7 @@ void load_prog(char *name)
 
   load_();
 
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 static void setfg(struct job *j)
@@ -574,7 +579,7 @@ void contin(char *unused)
 	currjob->state = 'r';
 	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
       case 'r':
-	fputs("\r\n", stderr);
+	crlf();
 	setfg(currjob);
 	break;
       default:
@@ -593,7 +598,7 @@ void proced(char *unused)
 	currjob->state = 'r';
 	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
       case 'r':
-	fputs("\r\n", stderr);
+	crlf();
  	break;
       default:
 	wrongstate(currjob);
@@ -611,7 +616,7 @@ void go(char *addr)
       {
       case '~':
       case 'p':
-	fputs("\r\n", stderr);
+	crlf();
 	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
 	currjob->state = 'r';
 	setfg(currjob);
@@ -623,7 +628,7 @@ void go(char *addr)
 
 void gzp(char *addr)
 {
-  fputs("\r\n", stderr);
+  crlf();
   if (addr && *addr)
     fprintf(stderr, "Address Prefix for gzp: %s\r\n", addr);
   else if (!currjob)
@@ -667,21 +672,21 @@ void lfile(char *unused)
       fputs(" job? ", stderr);
       return;
     }
-  fputs("\r\n", stderr);
+  crlf();
   if (currjob->state == '-')
     {
       fputs(" not loaded? \r\n", stderr);
       return;
     }
   typeout_fname(&(currjob->proc.ufname));
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 void forget(char *unused)
 {
   if (currjob)
     {
-      fputs("\r\n", stderr);
+      crlf();
       free_job(currjob);
       currjob = 0;
     }
@@ -692,7 +697,7 @@ void forget(char *unused)
 void self(char *unused)
 {
   currjob = 0;
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 void load_symbols(struct job *j)
@@ -729,10 +734,10 @@ void run_(char *jname, char *arg, int genj, int loadsyms)
     {
       if (!genj)
 	{
-	  fputs("\r\n", stderr);
+	  crlf();
 	  if (clobrf && !uquery("Clobber Existing Job"))
 	    {
-	      fputs("\r\n", stderr);
+	      crlf();
 	      return;
 	    }
 	  if (!kill_job(j))
@@ -812,7 +817,7 @@ void genjob(char *unused)
     }
   if (currjob->jname) free(currjob->jname);
   currjob->jname = njname;
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 void listp(char *unused)
@@ -840,7 +845,7 @@ void listp(char *unused)
       if (*s)
 	fprintf(stderr, "%-16s ", s);
       if ((i % 4) == 0)
-	fputs("\r\n", stderr);
+	crlf();
     }
-  fputs("\r\n", stderr);
+  crlf();
 }
