@@ -24,13 +24,34 @@ void version(char *unused)
 
   uname(&luname);
 
-  fprintf(stderr, "\r\n%s %s.%s DDT.%s.\r\n",
+  fprintf(stderr, "%s %s.%s DDT.%s.\r\n",
 	  luname.nodename,
 	  luname.sysname,
 	  luname.release,
 	  VERSION);
   if (!ttyname_r(0, ttyname, 32))
     fprintf(stderr, "%s\r\n", ttyname);
+}
+
+void sstatus(char *unused)
+{
+  double lavg[3];
+  int n;
+  fprintf(stderr, "%d Lusers, Load Avgs = ", 1);
+  if (getloadavg(lavg, 3) == -1)
+    fputs("unknown", stderr);
+  else
+    fprintf(stderr, "%.02f %.02f %.02f", lavg[0], lavg[1], lavg[2]);
+  fputs("\r\n", stderr);
+}
+
+void greet(void)
+{
+  version(NULL);
+  sstatus(NULL);
+  fputs("\r\nFor brief information type :help\r\n"
+	"For a list of colon commands, type :? and press Enter.\r\n"
+	"\r\nHappy hacking!\r\n", stderr);
 }
 
 void outtest (char *ignore)
