@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <termios.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <time.h>

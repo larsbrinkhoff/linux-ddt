@@ -1,3 +1,4 @@
+#include <termios.h>
 #include "files.h"
 
 struct process {
@@ -5,6 +6,8 @@ struct process {
   struct file ufname;
   char **argv;
   char **env;
+  void *syms;
+  size_t symlen;
   pid_t pid;
   int status;
 };
@@ -43,8 +46,11 @@ void proced(char *);
 void lfile(char *);
 void forget(char *);
 void self(char *);
-void run_(char *jname, char *arg, int genj);
 void genjob(char *);
+void listp(char *);
+
+void run_(char *jname, char *arg, int genj, int loadsyms);
+void load_symbols(struct job *j);
 
 void errout(char *arg);
 

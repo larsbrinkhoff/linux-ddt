@@ -2,7 +2,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdio.h>
-#include <termios.h>
 #include <sys/ptrace.h>
 #include <sys/reg.h>
 #include "jobs.h"

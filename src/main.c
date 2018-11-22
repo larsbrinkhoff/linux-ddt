@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <termios.h>
 #include "term.h"
 #include "dispatch.h"
 #include "jobs.h"

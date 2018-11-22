@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <termios.h>
 #include <ctype.h>
 #include "term.h"
 #include "ccmd.h"
@@ -179,7 +178,7 @@ static void colon (void)
     {
       char *cmdline = suffix();
       if (cmdline != NULL)
-	ccmd(cmdline);
+	ccmd(cmdline, altmodes);
       else			/* user rubbed out : */
 	{
 	  fprintf (stderr, "\010 \010");
@@ -352,7 +351,9 @@ void load (void)
 void kreat (void)
 {
   if (nprefix)
-    run_(prefix, NULL, 0);
+    run_(prefix, NULL, 0, altmodes);
+  else if (altmodes == 1)
+    load_symbols(currjob);
   else
     fputs("?? ", stderr);
   done = 1;
@@ -470,6 +471,7 @@ void dispatch_init (void)
   plain[CTRL_('F')] = files;
   plain[BACKSPACE] = backspace;
   plain[CTRL_('K')] = kreat;
+  alt[CTRL_('K')] = kreat;
   plain[FORMFEED] = formfeed;
   alt[FORMFEED] = formfeed;
   plain[CTRL_('N')] = step;
@@ -532,7 +534,7 @@ void prompt_and_execute (void)
       char *cmdline = suffix();
       if (cmdline != NULL)
 	{
-	  ccmd(cmdline);
+	  ccmd(cmdline, 0);
 	  return;
 	}
       else

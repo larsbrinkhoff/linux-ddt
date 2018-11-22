@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
-#include <termios.h>
 #include "ccmd.h"
 #include "jobs.h"
 #include "user.h"
@@ -52,6 +51,7 @@ struct builtin builtins[] =
    {"job", "", "create or select job [$j]", select_job},
    {"kill", "", "kill current job [$^x.]", kill_currjob},
    {"lfile", "", "print filename of last file loaded", lfile},
+   {"listp", "", "list block struct of the job's symbol table", listp},
    {"listf", "<dir>", "list files [^f]", listf},
    {"listj", "", "list jobs [$$v]", listj},
    {"load", "<file>", "load file into core [$l]", load_prog},
@@ -117,16 +117,16 @@ static char *skip_prgm(char *buf)
   return buf;
 }
 
-void ccmd(char *cmdline)
+void ccmd(char *cmdline, int altmodes)
 {
   char *cmd = skip_ws(skip_comment(cmdline));
   char *arg = skip_ws(skip_prgm(cmd));
-  if (!builtin(cmd, arg))
+  if (altmodes || !builtin(cmd, arg))
     {
       if (!runame())
 	fputs("\r\n(Please Log In)\r\n\r\n:kill\r\n", stderr);
       else
-	run_(cmd, arg, genjfl);
+	run_(cmd, arg, genjfl, altmodes);
     }
 }
 
@@ -162,11 +162,11 @@ void set_ddtmode(char *unused)
 static void retry(char *arg)
 {
   char *jcl = skip_ws(skip_prgm(arg));
-  run_(arg, jcl, 0);
+  run_(arg, jcl, 0, 0);
 }
 
 static void new(char *arg)
 {
   char *jcl = skip_ws(skip_prgm(arg));
-  run_(arg, jcl, 1);
+  run_(arg, jcl, 1, 0);
 }

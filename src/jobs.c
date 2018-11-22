@@ -8,8 +8,10 @@
 #include <stdio.h>
 #include <sys/ptrace.h>
 #include <errno.h>
-#include <termios.h>
 #include <ctype.h>
+#include <elf.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include "jobs.h"
 #include "user.h"
 #include "term.h"
@@ -163,6 +165,8 @@ static struct job *initslot(char slot, char *jname)
   j->proc.env = malloc(sizeof(char *) * 2);
   j->proc.env[0] = NULL;
   j->proc.env[1] = NULL;
+  j->proc.syms = 0;
+  j->proc.symlen = 0;
   j->proc.pid = 0;
   j->proc.status = 0;
 
@@ -197,13 +201,18 @@ static void free_job(struct job *j)
   if (j->proc.ufname.name) free(j->proc.ufname.name);
   if (j->proc.argv) free(j->proc.argv);
   // if (j->proc.env) free(j->proc.env);
+  if (j->proc.syms)
+    munmap(j->proc.syms, j->proc.symlen);
+  if (j->proc.ufname.fd != -1)
+    close(j->proc.ufname.fd);
+
   j->jname = 0;
   j->xjname = 0;
   j->jcl = 0;
   j->state = 0;
   j->proc.ufname.name = 0;
-  if (j->proc.ufname.fd != -1)
-    close(j->proc.ufname.fd);
+  j->proc.syms = 0;
+  j->proc.symlen = 0;
   j->proc.argv = 0;
 }
 
@@ -478,7 +487,7 @@ void load_prog(char *name)
 
   errno = 0;
   while ((fd = openat(hsname.fd, currjob->proc.ufname.name,
-		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
+		      O_CLOEXEC, O_RDONLY)) == -1)
     if (errno == EINTR)
       {
 	errno = 0;
@@ -718,7 +727,30 @@ void self(char *unused)
   fputs("\r\n", stderr);
 }
 
-void run_(char *jname, char *arg, int genj)
+void load_symbols(struct job *j)
+{
+  Elf64_Ehdr *ehdr;
+  struct stat status;
+
+  errno = 0;
+  fstatat(j->proc.ufname.fd, "", &status, AT_EMPTY_PATH);
+  if (!errno)
+    {
+      if ((ehdr = (Elf64_Ehdr *)mmap(0, status.st_size,
+				     PROT_READ, MAP_PRIVATE,
+				     j->proc.ufname.fd, 0)) != (Elf64_Ehdr *)(MAP_FAILED))
+	{
+	  j->proc.syms = ehdr;
+	  j->proc.symlen = status.st_size;
+	}
+      else
+	errout("mmap");
+    }
+  else
+    errout("fstatat");
+}
+
+void run_(char *jname, char *arg, int genj, int loadsyms)
 {
   struct job *j;
   char *defjcl = "";
@@ -771,8 +803,7 @@ void run_(char *jname, char *arg, int genj)
       return;
     }
   int fd;
-  while ((fd = openat(dir->fd, jname,
-		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
+  while ((fd = openat(dir->fd, jname, O_CLOEXEC, O_RDONLY)) == -1)
     if (errno == EINTR)
       {
 	errno = 0;
@@ -788,6 +819,10 @@ void run_(char *jname, char *arg, int genj)
   currjob->proc.ufname.dirfd = dir->fd;
   currjob->proc.ufname.fd = fd;
   currjob->proc.argv[0] = strdup(jname);
+
+  if (loadsyms)
+    load_symbols(currjob);
+
   load_();
   waitexpect(currjob, EXPECT_STOP, 5);
 
@@ -813,5 +848,35 @@ void genjob(char *unused)
     }
   if (currjob->jname) free(currjob->jname);
   currjob->jname = njname;
+  fputs("\r\n", stderr);
+}
+
+void listp(char *unused)
+{
+  if (!currjob)
+    {
+      fprintf(stderr, " job? ");
+      return;
+    }
+  if (!currjob->proc.syms)
+    {
+      fprintf(stderr, " not loaded? ");
+      return;
+    }
+
+  char *p = currjob->proc.syms;
+  Elf64_Ehdr *ehdr = (Elf64_Ehdr *)currjob->proc.syms;
+  Elf64_Shdr *shdr = (Elf64_Shdr *)(currjob->proc.syms + ehdr->e_shoff);
+  Elf64_Shdr *sh_strtab = &shdr[ehdr->e_shstrndx];
+  const char *const sh_strtab_p = currjob->proc.syms + sh_strtab->sh_offset;
+
+  for (int i = 0; i < ehdr->e_shnum; i++)
+    {
+      const char *s = sh_strtab_p + shdr[i].sh_name;
+      if (*s)
+	fprintf(stderr, "%-16s ", s);
+      if ((i % 4) == 0)
+	fputs("\r\n", stderr);
+    }
   fputs("\r\n", stderr);
 }
