@@ -178,7 +178,7 @@ static void colon (void)
     {
       char *cmdline = suffix();
       if (cmdline != NULL)
-	ccmd(cmdline);
+	ccmd(cmdline, altmodes);
       else			/* user rubbed out : */
 	{
 	  fprintf (stderr, "\010 \010");
@@ -351,7 +351,7 @@ void load (void)
 void kreat (void)
 {
   if (nprefix)
-    run_(prefix, NULL, 0);
+    run_(prefix, NULL, 0, altmodes);
   else
     fputs("?? ", stderr);
   done = 1;
@@ -531,7 +531,7 @@ void prompt_and_execute (void)
       char *cmdline = suffix();
       if (cmdline != NULL)
 	{
-	  ccmd(cmdline);
+	  ccmd(cmdline, 0);
 	  return;
 	}
       else

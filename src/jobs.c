@@ -9,6 +9,9 @@
 #include <sys/ptrace.h>
 #include <errno.h>
 #include <ctype.h>
+#include <elf.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include "jobs.h"
 #include "user.h"
 #include "term.h"
@@ -162,6 +165,8 @@ static struct job *initslot(char slot, char *jname)
   j->proc.env = malloc(sizeof(char *) * 2);
   j->proc.env[0] = NULL;
   j->proc.env[1] = NULL;
+  j->proc.syms = 0;
+  j->proc.symlen = 0;
   j->proc.pid = 0;
   j->proc.status = 0;
 
@@ -196,13 +201,18 @@ static void free_job(struct job *j)
   if (j->proc.ufname.name) free(j->proc.ufname.name);
   if (j->proc.argv) free(j->proc.argv);
   // if (j->proc.env) free(j->proc.env);
+  if (j->proc.syms)
+    munmap(j->proc.syms, j->proc.symlen);
+  if (j->proc.ufname.fd != -1)
+    close(j->proc.ufname.fd);
+
   j->jname = 0;
   j->xjname = 0;
   j->jcl = 0;
   j->state = 0;
   j->proc.ufname.name = 0;
-  if (j->proc.ufname.fd != -1)
-    close(j->proc.ufname.fd);
+  j->proc.syms = 0;
+  j->proc.symlen = 0;
   j->proc.argv = 0;
 }
 
@@ -717,7 +727,30 @@ void self(char *unused)
   fputs("\r\n", stderr);
 }
 
-void run_(char *jname, char *arg, int genj)
+void load_symbols(struct job *j)
+{
+  Elf64_Ehdr *ehdr;
+  struct stat status;
+
+  errno = 0;
+  fstatat(j->proc.ufname.fd, "", &status, AT_EMPTY_PATH);
+  if (!errno)
+    {
+      if ((ehdr = (Elf64_Ehdr *)mmap(0, status.st_size,
+				     PROT_READ, MAP_PRIVATE,
+				     j->proc.ufname.fd, 0)) != (Elf64_Ehdr *)(MAP_FAILED))
+	{
+	  j->proc.syms = ehdr;
+	  j->proc.symlen = status.st_size;
+	}
+      else
+	errout("mmap");
+    }
+  else
+    errout("fstatat");
+}
+
+void run_(char *jname, char *arg, int genj, int loadsyms)
 {
   struct job *j;
   char *defjcl = "";
@@ -770,8 +803,7 @@ void run_(char *jname, char *arg, int genj)
       return;
     }
   int fd;
-  while ((fd = openat(dir->fd, jname,
-		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
+  while ((fd = openat(dir->fd, jname, O_CLOEXEC, O_RDONLY)) == -1)
     if (errno == EINTR)
       {
 	errno = 0;
@@ -787,6 +819,10 @@ void run_(char *jname, char *arg, int genj)
   currjob->proc.ufname.dirfd = dir->fd;
   currjob->proc.ufname.fd = fd;
   currjob->proc.argv[0] = strdup(jname);
+
+  if (loadsyms)
+    load_symbols(currjob);
+
   load_();
   waitexpect(currjob, EXPECT_STOP, 5);
 
