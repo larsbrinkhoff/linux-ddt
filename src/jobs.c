@@ -460,19 +460,12 @@ void load_prog(char *name)
 
   int fd;
 
-  errno = 0;
-  while ((fd = openat(hsname.fd, currjob->proc.ufname.name,
-		      O_CLOEXEC, O_RDONLY)) == -1)
-    if (errno == EINTR)
-      {
-	errno = 0;
-	continue;
-      }
-    else
-      {
-	errout("child openat");
-	return;
-      }
+  if ((fd = open_(hsname.fd, currjob->proc.ufname.name, O_RDONLY)) == -1)
+    {
+      errout("child openat");
+      return;
+    }
+
   currjob->proc.ufname.devfd = devices[DEVDSK].fd;
   currjob->proc.ufname.dirfd = msname.fd;
   currjob->proc.ufname.fd = fd;
@@ -777,18 +770,14 @@ void run_(char *jname, char *arg, int genj, int loadsyms)
       fprintf(stderr, "%s - file not found\r\n", jname);
       return;
     }
+
   int fd;
-  while ((fd = openat(dir->fd, jname, O_CLOEXEC, O_RDONLY)) == -1)
-    if (errno == EINTR)
-      {
-	errno = 0;
-	continue;
-      }
-    else
-      {
-	errout("child openat");
-	return;
-      }
+  if ((fd = open_(dir->fd, jname, O_RDONLY)) == -1)
+    {
+      errout("child openat");
+      return;
+    }
+
   currjob->proc.ufname.name = strdup(jname);
   currjob->proc.ufname.devfd = dir->devfd;
   currjob->proc.ufname.dirfd = dir->fd;

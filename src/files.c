@@ -35,13 +35,13 @@ struct file hsname = { 0, -1, -1, -1 };
 struct file msname = { 0, -1, -1, -1 };
 struct file deffile = { 0, -1, -1, -1 };
 
-int open_ro(int dirfd, char *path)
+int open_(int dirfd, char *path, int flags)
 {
   int fd;
 
   errno = 0;
 
-  while ((fd = openat(dirfd, path, 0, O_RDONLY)) == -1)
+  while ((fd = openat(dirfd, path, O_CLOEXEC, flags)) == -1)
     if (errno == EINTR)
       {
 	errno = 0;
@@ -414,7 +414,7 @@ void print_file(char *arg)
     if (parse_fname(&parsed, arg) == NULL)
       goto error;
 
-  if ((parsed.fd = open_ro(parsed.dirfd, parsed.name)) == -1)
+  if ((parsed.fd = open_(parsed.dirfd, parsed.name, O_RDONLY)) == -1)
     goto error;
 
   struct stat fstatus;
@@ -519,7 +519,7 @@ void list_files(char *arg, int setdefp)
   typeout_fname(&parsed);
   fputs("\r\n", stderr);
 
-  if ((parsed.fd = open_ro(parsed.dirfd, ".")) == -1)
+  if ((parsed.fd = open_(parsed.dirfd, ".", O_RDONLY)) == -1)
     goto error;
 
   struct stat fstatus;

@@ -17,6 +17,8 @@ void list_files(char *arg, int setdefp);
 
 void typeout_fname(struct file *f);
 
+int open_(int dirfd, char *path, int flags);
+
 extern struct file devices[];
 extern struct file hsname;
 extern struct file msname;
