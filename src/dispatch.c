@@ -352,6 +352,8 @@ void kreat (void)
 {
   if (nprefix)
     run_(prefix, NULL, 0, altmodes);
+  else if (altmodes == 1)
+    load_symbols(currjob);
   else
     fputs("?? ", stderr);
   done = 1;
@@ -469,6 +471,7 @@ void dispatch_init (void)
   plain[CTRL_('F')] = files;
   plain[BACKSPACE] = backspace;
   plain[CTRL_('K')] = kreat;
+  alt[CTRL_('K')] = kreat;
   plain[FORMFEED] = formfeed;
   alt[FORMFEED] = formfeed;
   plain[CTRL_('N')] = step;
