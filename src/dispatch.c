@@ -39,7 +39,15 @@ static void echo (int ch)
   switch (ch)
     {
     case ALTMODE: fputc ('$', stderr); break;
-    default: fputc (ch, stderr); break;
+    default:
+      if (iscntrl(ch))
+	{
+	  fputc('^', stderr);
+	  fputc(ch + 64, stderr);
+	}
+      else
+	fputc (ch, stderr);
+      break;
     }
 }
 
@@ -104,6 +112,8 @@ static void rubout (void)
   else if (nprefix)
     {
       if (prefix[--nprefix] & 0x80)
+	fputs ("\010 \010", stderr);
+      if (iscntrl(prefix[nprefix]))
 	fputs ("\010 \010", stderr);
       prefix[nprefix] = 0;
     }
@@ -230,7 +240,13 @@ static void formfeed (void)
     {
       if (prefix[i] & 0x80)
 	fputc('$', stderr);
-      fputc(prefix[i] & 0x7f, stderr);
+      if (iscntrl(prefix[i]))
+	{
+	  fputc('^', stderr);
+	  fputc((prefix[i] & 0x7f) + 64, stderr);
+	}
+      else
+	fputc(prefix[i] & 0x7f, stderr);
     }
   if (altmodes > 1)
     fputc('$', stderr);

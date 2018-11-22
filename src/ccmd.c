@@ -11,6 +11,8 @@ void help(char *);
 void list_builtins(char *);
 static void retry(char *arg);
 static void new(char *arg);
+static void version_(char *);
+static void sstatus_(char *);
 
 #define ALTMODE 033
 
@@ -68,8 +70,9 @@ struct builtin builtins[] =
    {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
    {"retry", "<prgm> <opt jcl>", "invoke <prgm>, clobbering any old copy", retry},
    {"self", "", "select DDT as current job", self},
+   {"sstatus", "", "type system status", sstatus_},
    {"start", "<start addr (opt)>", "start inferior [<addr>$g]", go},
-   {"version", "", "type version number of Linux and DDT", version},
+   {"version", "", "type version number of Linux and DDT", version_},
    {"?", "", "list all : commands", list_builtins},
    {0, 0, 0, 0}
   };
@@ -83,6 +86,11 @@ static int builtin(char *name, char *arg)
 	return 1;
       }
   return 0;
+}
+
+static void crlf(void)
+{
+  fputs("\r\n", stderr);
 }
 
 static char *skip_comment(char *buf)
@@ -147,14 +155,14 @@ void help(char *arg)
 
 void set_monmode(char *unused)
 {
-  fputs("\r\n", stderr);
+  crlf();
   monmode = 1;
   prompt = ":";
 }
 
 void set_ddtmode(char *unused)
 {
-  fputs("\r\n", stderr);
+  crlf();
   monmode = 0;
   prompt = "*";
 }
@@ -169,4 +177,16 @@ static void new(char *arg)
 {
   char *jcl = skip_ws(skip_prgm(arg));
   run_(arg, jcl, 1, 0);
+}
+
+static void version_(char *unused)
+{
+  crlf();
+  version(NULL);
+}
+
+static void sstatus_(char *unused)
+{
+  crlf();
+  sstatus(NULL);
 }

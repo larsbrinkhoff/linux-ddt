@@ -33,6 +33,11 @@ int genjfl = 1;
 static char errstr[64];
 static int pfd1[2], pfd2[2];
 
+static void crlf(void)
+{
+  fputs("\r\n", stderr);
+}
+
 void jobs_init(void)
 {
   if (pipe(pfd1) < 0 || pipe(pfd2) < 0) {
@@ -137,7 +142,7 @@ void next_job(void)
 
 void listj(char *arg)
 {
-  fputs("\r\n", stderr);
+  crlf();
   for (struct job *j = jobs; j < jobsend; j++)
     if (j->state != 0)
       fprintf(stderr, "%c %s %c %d\r\n",
@@ -180,7 +185,7 @@ void select_job(char *jname)
   if ((j = getjob(jname)))
     {
       currjob = j;
-      fputs("\r\n", stderr);
+      crlf();
       return;
     }
 
@@ -216,32 +221,7 @@ static void free_job(struct job *j)
   j->proc.argv = 0;
 }
 
-static void jobwait(struct job *j)
-{
-  int status = 0;
-
-  waitpid(j->proc.pid, &status, WUNTRACED|WCONTINUED);
-  if (WIFEXITED(status))
-    {
-      if (WEXITSTATUS(status))
-	fprintf(stderr, ":exit %d\r\n", WEXITSTATUS(status));
-      free_job(j);
-    }
-  else if (WIFSIGNALED(status))
-    {
-      fprintf(stderr, ":kill %d\r\n", WTERMSIG(status));
-      free_job(j);
-    }
-  else if (WIFSTOPPED(status))
-    {
-      fprintf(stderr, ":stop signal=%d\r\n", WSTOPSIG(status));
-      j->state = 'p';
-    }
-  else
-    fprintf(stderr, " wait status=%d\r\n", status);
-}
-
-static void waitexpect(struct job *j, int expect, int sig)
+static void jobwait(struct job *j, int expect, int sig)
 {
   int status = 0;
 
@@ -299,10 +279,10 @@ void kill_currjob(char *arg)
 {
   if (currjob)
     {
-      fputs("\r\n", stderr);
+      crlf();
       if (kill_job(currjob))
 	{
-	  jobwait(currjob);
+	  jobwait(currjob, 0, 0);
 	  currjob = 0;
 	  char slot;
 	  if ((slot = nextslot()) != -1)
@@ -330,14 +310,14 @@ void jclprt(char *notused)
   if (currjob)
     {
       char **argv = currjob->proc.argv;
-      fputs("\r\n", stderr);
+      crlf();
       argv++;
       while (*argv)
 	{
 	  fprintf(stderr, "%s ", *argv);
 	  argv++;
 	}
-      fputs("\r\n", stderr);
+      crlf();
     }
 }
 
@@ -374,7 +354,7 @@ void jcl(char *argstr)
   while (argc < MAXARGS
 	 && ((currjob->proc.argv[argc] = strtok(NULL, " \t")) != NULL))
     currjob->proc.argv[++argc] == NULL;
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 static inline int tell_parent(void)
@@ -485,26 +465,19 @@ void load_prog(char *name)
 
   int fd;
 
-  errno = 0;
-  while ((fd = openat(hsname.fd, currjob->proc.ufname.name,
-		      O_CLOEXEC, O_RDONLY)) == -1)
-    if (errno == EINTR)
-      {
-	errno = 0;
-	continue;
-      }
-    else
-      {
-	errout("child openat");
-	return;
-      }
+  if ((fd = open_(hsname.fd, currjob->proc.ufname.name, O_RDONLY)) == -1)
+    {
+      errout("child openat");
+      return;
+    }
+
   currjob->proc.ufname.devfd = devices[DEVDSK].fd;
   currjob->proc.ufname.dirfd = msname.fd;
   currjob->proc.ufname.fd = fd;
 
   load_();
 
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 static void setfg(struct job *j)
@@ -527,7 +500,7 @@ int fgwait(void)
   if (!fg)
     return 0;
 
-  jobwait(fg);
+  jobwait(fg, 0, 0);
 
   tcgetattr(0, &(fg->tmode));
   setfg(0);
@@ -606,7 +579,7 @@ void contin(char *unused)
 	currjob->state = 'r';
 	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
       case 'r':
-	fputs("\r\n", stderr);
+	crlf();
 	setfg(currjob);
 	break;
       default:
@@ -625,7 +598,7 @@ void proced(char *unused)
 	currjob->state = 'r';
 	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
       case 'r':
-	fputs("\r\n", stderr);
+	crlf();
  	break;
       default:
 	wrongstate(currjob);
@@ -643,7 +616,7 @@ void go(char *addr)
       {
       case '~':
       case 'p':
-	fputs("\r\n", stderr);
+	crlf();
 	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
 	currjob->state = 'r';
 	setfg(currjob);
@@ -655,7 +628,7 @@ void go(char *addr)
 
 void gzp(char *addr)
 {
-  fputs("\r\n", stderr);
+  crlf();
   if (addr && *addr)
     fprintf(stderr, "Address Prefix for gzp: %s\r\n", addr);
   else if (!currjob)
@@ -686,7 +659,7 @@ void stop_currjob(void)
     errout("ptrace intr");
   else
     {
-      jobwait(currjob);
+      jobwait(currjob, 0, 0);
       currjob->state = 'p';
       typeout_pc(currjob);
     }
@@ -699,21 +672,21 @@ void lfile(char *unused)
       fputs(" job? ", stderr);
       return;
     }
-  fputs("\r\n", stderr);
+  crlf();
   if (currjob->state == '-')
     {
       fputs(" not loaded? \r\n", stderr);
       return;
     }
   typeout_fname(&(currjob->proc.ufname));
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 void forget(char *unused)
 {
   if (currjob)
     {
-      fputs("\r\n", stderr);
+      crlf();
       free_job(currjob);
       currjob = 0;
     }
@@ -724,7 +697,7 @@ void forget(char *unused)
 void self(char *unused)
 {
   currjob = 0;
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 void load_symbols(struct job *j)
@@ -761,15 +734,15 @@ void run_(char *jname, char *arg, int genj, int loadsyms)
     {
       if (!genj)
 	{
-	  fputs("\r\n", stderr);
+	  crlf();
 	  if (clobrf && !uquery("Clobber Existing Job"))
 	    {
-	      fputs("\r\n", stderr);
+	      crlf();
 	      return;
 	    }
 	  if (!kill_job(j))
 	    return;
-	  jobwait(j);
+	  jobwait(j, 0, 0);
 	}
       else
 	{
@@ -802,18 +775,14 @@ void run_(char *jname, char *arg, int genj, int loadsyms)
       fprintf(stderr, "%s - file not found\r\n", jname);
       return;
     }
+
   int fd;
-  while ((fd = openat(dir->fd, jname, O_CLOEXEC, O_RDONLY)) == -1)
-    if (errno == EINTR)
-      {
-	errno = 0;
-	continue;
-      }
-    else
-      {
-	errout("child openat");
-	return;
-      }
+  if ((fd = open_(dir->fd, jname, O_RDONLY)) == -1)
+    {
+      errout("child openat");
+      return;
+    }
+
   currjob->proc.ufname.name = strdup(jname);
   currjob->proc.ufname.devfd = dir->devfd;
   currjob->proc.ufname.dirfd = dir->fd;
@@ -824,7 +793,7 @@ void run_(char *jname, char *arg, int genj, int loadsyms)
     load_symbols(currjob);
 
   load_();
-  waitexpect(currjob, EXPECT_STOP, 5);
+  jobwait(currjob, EXPECT_STOP, 5);
 
   ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
   currjob->state = 'r';
@@ -848,7 +817,7 @@ void genjob(char *unused)
     }
   if (currjob->jname) free(currjob->jname);
   currjob->jname = njname;
-  fputs("\r\n", stderr);
+  crlf();
 }
 
 void listp(char *unused)
@@ -876,7 +845,7 @@ void listp(char *unused)
       if (*s)
 	fprintf(stderr, "%-16s ", s);
       if ((i % 4) == 0)
-	fputs("\r\n", stderr);
+	crlf();
     }
-  fputs("\r\n", stderr);
+  crlf();
 }

@@ -2,6 +2,7 @@
 #include "term.h"
 #include "dispatch.h"
 #include "jobs.h"
+#include "user.h"
 
 static void cleanup (void)
 {
@@ -15,6 +16,8 @@ int main (int argc, char **argv)
   term_init ();
   atexit (cleanup);
   dispatch_init ();
+
+  greet();
 
   for (;;)
     if (!fgwait())
