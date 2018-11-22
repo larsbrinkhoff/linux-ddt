@@ -216,32 +216,7 @@ static void free_job(struct job *j)
   j->proc.argv = 0;
 }
 
-static void jobwait(struct job *j)
-{
-  int status = 0;
-
-  waitpid(j->proc.pid, &status, WUNTRACED|WCONTINUED);
-  if (WIFEXITED(status))
-    {
-      if (WEXITSTATUS(status))
-	fprintf(stderr, ":exit %d\r\n", WEXITSTATUS(status));
-      free_job(j);
-    }
-  else if (WIFSIGNALED(status))
-    {
-      fprintf(stderr, ":kill %d\r\n", WTERMSIG(status));
-      free_job(j);
-    }
-  else if (WIFSTOPPED(status))
-    {
-      fprintf(stderr, ":stop signal=%d\r\n", WSTOPSIG(status));
-      j->state = 'p';
-    }
-  else
-    fprintf(stderr, " wait status=%d\r\n", status);
-}
-
-static void waitexpect(struct job *j, int expect, int sig)
+static void jobwait(struct job *j, int expect, int sig)
 {
   int status = 0;
 
@@ -302,7 +277,7 @@ void kill_currjob(char *arg)
       fputs("\r\n", stderr);
       if (kill_job(currjob))
 	{
-	  jobwait(currjob);
+	  jobwait(currjob, 0, 0);
 	  currjob = 0;
 	  char slot;
 	  if ((slot = nextslot()) != -1)
@@ -527,7 +502,7 @@ int fgwait(void)
   if (!fg)
     return 0;
 
-  jobwait(fg);
+  jobwait(fg, 0, 0);
 
   tcgetattr(0, &(fg->tmode));
   setfg(0);
@@ -686,7 +661,7 @@ void stop_currjob(void)
     errout("ptrace intr");
   else
     {
-      jobwait(currjob);
+      jobwait(currjob, 0, 0);
       currjob->state = 'p';
       typeout_pc(currjob);
     }
@@ -769,7 +744,7 @@ void run_(char *jname, char *arg, int genj, int loadsyms)
 	    }
 	  if (!kill_job(j))
 	    return;
-	  jobwait(j);
+	  jobwait(j, 0, 0);
 	}
       else
 	{
@@ -824,7 +799,7 @@ void run_(char *jname, char *arg, int genj, int loadsyms)
     load_symbols(currjob);
 
   load_();
-  waitexpect(currjob, EXPECT_STOP, 5);
+  jobwait(currjob, EXPECT_STOP, 5);
 
   ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
   currjob->state = 'r';
