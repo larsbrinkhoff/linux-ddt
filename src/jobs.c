@@ -487,7 +487,7 @@ void load_prog(char *name)
 
   errno = 0;
   while ((fd = openat(hsname.fd, currjob->proc.ufname.name,
-		      O_PATH | O_CLOEXEC | O_NOFOLLOW, O_RDONLY)) == -1)
+		      O_CLOEXEC, O_RDONLY)) == -1)
     if (errno == EINTR)
       {
 	errno = 0;
@@ -848,5 +848,35 @@ void genjob(char *unused)
     }
   if (currjob->jname) free(currjob->jname);
   currjob->jname = njname;
+  fputs("\r\n", stderr);
+}
+
+void listp(char *unused)
+{
+  if (!currjob)
+    {
+      fprintf(stderr, " job? ");
+      return;
+    }
+  if (!currjob->proc.syms)
+    {
+      fprintf(stderr, " not loaded? ");
+      return;
+    }
+
+  char *p = currjob->proc.syms;
+  Elf64_Ehdr *ehdr = (Elf64_Ehdr *)currjob->proc.syms;
+  Elf64_Shdr *shdr = (Elf64_Shdr *)(currjob->proc.syms + ehdr->e_shoff);
+  Elf64_Shdr *sh_strtab = &shdr[ehdr->e_shstrndx];
+  const char *const sh_strtab_p = currjob->proc.syms + sh_strtab->sh_offset;
+
+  for (int i = 0; i < ehdr->e_shnum; i++)
+    {
+      const char *s = sh_strtab_p + shdr[i].sh_name;
+      if (*s)
+	fprintf(stderr, "%-16s ", s);
+      if ((i % 4) == 0)
+	fputs("\r\n", stderr);
+    }
   fputs("\r\n", stderr);
 }

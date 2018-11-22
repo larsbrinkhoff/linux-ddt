@@ -47,6 +47,7 @@ void lfile(char *);
 void forget(char *);
 void self(char *);
 void genjob(char *);
+void listp(char *);
 
 void run_(char *jname, char *arg, int genj, int loadsyms);
 void load_symbols(struct job *j);
