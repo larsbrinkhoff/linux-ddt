@@ -863,7 +863,6 @@ void listp(char *unused)
       return;
     }
 
-  char *p = currjob->proc.syms;
   Elf64_Ehdr *ehdr = (Elf64_Ehdr *)currjob->proc.syms;
   Elf64_Shdr *shdr = (Elf64_Shdr *)(currjob->proc.syms + ehdr->e_shoff);
   Elf64_Shdr *sh_strtab = &shdr[ehdr->e_shstrndx];
