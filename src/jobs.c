@@ -275,8 +275,7 @@ static int kill_job(struct job *j)
       break;
     case '~':
     case 'p':
-      errno = 0;
-      if (ptrace(PTRACE_DETACH, j->proc.pid, NULL, NULL) == -1)
+      if (!ptrace_detach(j->proc.pid))
 	errout("ptrace detach");
     case 'r':
       errno = 0;
@@ -433,7 +432,7 @@ static void load_(void)
     child_load();
 
   wait_child();
-  if (ptrace(PTRACE_SEIZE, childpid, NULL, NULL) == -1)
+  if (!ptrace_seize(childpid))
     errout("ptrace seize");
   tell_child();
 
@@ -450,9 +449,9 @@ static void load_(void)
       currjob->state = '~';
     }
 
-  if (ptrace(PTRACE_SETOPTIONS, childpid, NULL, PTRACE_O_TRACEEXEC) == -1)
+  if (!ptrace_setopts(childpid, PTRACE_O_TRACEEXEC))
     errout("ptrace setoptions");
-  else if (ptrace(PTRACE_CONT, childpid, NULL, NULL) == -1)
+  else if (!ptrace_cont(childpid))
     errout("ptrace cont");
 }
 
@@ -594,8 +593,10 @@ void contin(char *unused)
     switch (currjob->state)
       {
       case 'p':
-	currjob->state = 'r';
-	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
+	if (ptrace_cont(currjob->proc.pid))
+	  currjob->state = 'r';
+	else
+	  errout(currjob->proc.ufname.name);
       case 'r':
 	crlf();
 	setfg(currjob);
@@ -613,8 +614,10 @@ void proced(char *unused)
     switch (currjob->state)
       {
       case 'p':
-	currjob->state = 'r';
-	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
+	if (ptrace_cont(currjob->proc.pid))
+	  currjob->state = 'r';
+	else
+	  errout(currjob->proc.ufname.name);
       case 'r':
 	crlf();
  	break;
@@ -635,9 +638,13 @@ void go(char *addr)
       case '~':
       case 'p':
 	crlf();
-	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
-	currjob->state = 'r';
-	setfg(currjob);
+	if (ptrace_cont(currjob->proc.pid))
+	  {
+	    currjob->state = 'r';
+	    setfg(currjob);
+	  }
+	else
+	  errout(currjob->proc.ufname.name);
 	break;
       default:
 	wrongstate(currjob);
@@ -656,8 +663,10 @@ void gzp(char *addr)
       {
       case '~':
       case 'p':
-	ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
-	currjob->state = 'r';
+	if (ptrace_cont(currjob->proc.pid))
+	  currjob->state = 'r';
+	else
+	  errout(currjob->proc.ufname.name);
 	break;
       default:
 	wrongstate(currjob);
@@ -672,15 +681,14 @@ void stop_currjob(void)
       return;
     }
 
-  errno = 0;
-  if (ptrace(PTRACE_INTERRUPT, currjob->proc.pid, NULL, NULL) == -1)
-    errout("ptrace intr");
-  else
+  if (ptrace_interrupt(currjob->proc.pid))
     {
       jobwait(currjob, 0, 0);
       currjob->state = 'p';
       typeout_pc(currjob);
     }
+  else
+    errout("ptrace intr");
 }
 
 void lfile(char *unused)
@@ -813,9 +821,13 @@ void run_(char *jname, char *arg, int genj, int loadsyms)
   load_();
   jobwait(currjob, EXPECT_STOP, 5);
 
-  ptrace(PTRACE_CONT, currjob->proc.pid, NULL, NULL);
-  currjob->state = 'r';
-  setfg(currjob);
+  if (ptrace_cont(currjob->proc.pid))
+    {
+      currjob->state = 'r';
+      setfg(currjob);
+    }
+  else
+    errout(currjob->proc.ufname.name);
 }
 
 void genjob(char *unused)

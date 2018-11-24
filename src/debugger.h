@@ -20,5 +20,10 @@ along with Linux-ddt. If not, see <https://www.gnu.org/licenses/>.
 
 void typeout_pc(struct job *j);
 void step_job(struct job *j);
+int ptrace_seize(pid_t pid);
+int ptrace_detach(pid_t pid);
+int ptrace_interrupt(pid_t pid);
+int ptrace_setopts(pid_t pid, int opts);
+int ptrace_cont(pid_t pid);
 
 extern uint64_t qreg;

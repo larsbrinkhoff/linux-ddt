@@ -23,6 +23,7 @@ along with Linux-ddt. If not, see <https://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <sys/ptrace.h>
 #include <sys/reg.h>
+#include <errno.h>
 #include "jobs.h"
 
 uint64_t qreg = 0;
@@ -41,4 +42,39 @@ void step_job(struct job *j)
   if (ptrace(PTRACE_SINGLESTEP, j->proc.pid, NULL, NULL) == -1)
     errout("ptrace");
   check_jobs();
+}
+
+int ptrace_seize(pid_t pid)
+{
+  errno = 0;
+
+  return (ptrace(PTRACE_SEIZE, pid, NULL, NULL) != -1);
+}
+
+int ptrace_detach(pid_t pid)
+{
+  errno = 0;
+
+  return (ptrace(PTRACE_DETACH, pid, NULL, NULL) != -1);
+}
+
+int ptrace_interrupt(pid_t pid)
+{
+  errno = 0;
+
+  return (ptrace(PTRACE_INTERRUPT, pid, NULL, NULL) != -1);
+}
+
+int ptrace_setopts(pid_t pid, int opts)
+{
+  errno = 0;
+
+  return (ptrace(PTRACE_SETOPTIONS, pid, NULL, opts) != -1);
+}
+
+int ptrace_cont(pid_t pid)
+{
+  errno = 0;
+
+  return (ptrace(PTRACE_CONT, pid, NULL, NULL) != -1);
 }
