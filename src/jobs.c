@@ -27,9 +27,6 @@ along with Linux-ddt. If not, see <https://www.gnu.org/licenses/>.
 #include <sys/ptrace.h>
 #include <errno.h>
 #include <ctype.h>
-#include <elf.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
 #include "jobs.h"
 #include "user.h"
 #include "term.h"
@@ -224,10 +221,10 @@ static void free_job(struct job *j)
   if (j->proc.ufname.name) free(j->proc.ufname.name);
   if (j->proc.argv) free(j->proc.argv);
   // if (j->proc.env) free(j->proc.env);
-  if (j->proc.syms)
-    munmap(j->proc.syms, j->proc.symlen);
   if (j->proc.ufname.fd != -1)
     close(j->proc.ufname.fd);
+  if (j->proc.syms)
+    unload_symbols(j);
 
   j->jname = 0;
   j->xjname = 0;
@@ -726,29 +723,6 @@ void self(char *unused)
   crlf();
 }
 
-void load_symbols(struct job *j)
-{
-  Elf64_Ehdr *ehdr;
-  struct stat status;
-
-  errno = 0;
-  fstatat(j->proc.ufname.fd, "", &status, AT_EMPTY_PATH);
-  if (!errno)
-    {
-      if ((ehdr = (Elf64_Ehdr *)mmap(0, status.st_size,
-				     PROT_READ, MAP_PRIVATE,
-				     j->proc.ufname.fd, 0)) != (Elf64_Ehdr *)(MAP_FAILED))
-	{
-	  j->proc.syms = ehdr;
-	  j->proc.symlen = status.st_size;
-	}
-      else
-	errout("mmap");
-    }
-  else
-    errout("fstatat");
-}
-
 void run_(char *jname, char *arg, int genj, int loadsyms)
 {
   struct job *j;
@@ -847,34 +821,5 @@ void genjob(char *unused)
     }
   if (currjob->jname) free(currjob->jname);
   currjob->jname = njname;
-  crlf();
-}
-
-void listp(char *unused)
-{
-  if (!currjob)
-    {
-      fprintf(stderr, " job? ");
-      return;
-    }
-  if (!currjob->proc.syms)
-    {
-      fprintf(stderr, " not loaded? ");
-      return;
-    }
-
-  Elf64_Ehdr *ehdr = (Elf64_Ehdr *)currjob->proc.syms;
-  Elf64_Shdr *shdr = (Elf64_Shdr *)(currjob->proc.syms + ehdr->e_shoff);
-  Elf64_Shdr *sh_strtab = &shdr[ehdr->e_shstrndx];
-  const char *const sh_strtab_p = currjob->proc.syms + sh_strtab->sh_offset;
-
-  for (int i = 0; i < ehdr->e_shnum; i++)
-    {
-      const char *s = sh_strtab_p + shdr[i].sh_name;
-      if (*s)
-	fprintf(stderr, "%-16s ", s);
-      if ((i % 4) == 0)
-	crlf();
-    }
   crlf();
 }
