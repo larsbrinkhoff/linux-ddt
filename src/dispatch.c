@@ -387,7 +387,10 @@ void kreat (void)
   if (nprefix)
     run_(prefix, NULL, 0, altmodes);
   else if (altmodes == 1)
-    load_symbols(currjob);
+    {
+      load_symbols(currjob);
+      fputs("\r\n", stderr);
+    }
   else
     fputs("?? ", stderr);
   done = 1;
