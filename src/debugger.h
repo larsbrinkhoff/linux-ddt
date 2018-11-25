@@ -30,5 +30,6 @@ void load_symbols(struct job *j);
 void unload_symbols(struct job *j);
 void listp(char *);
 void lists(char *);
+void symlod(char *arg);
 
 extern uint64_t qreg;

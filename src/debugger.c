@@ -208,3 +208,25 @@ void lists(char *unused)
     if (symtab_p[i].st_name)
       fprintf(stderr, "%s\r\n", strtab_p + symtab_p[i].st_name);
 }
+
+void symlod(char *arg)
+{
+  if (!currjob)
+    {
+      fprintf(stderr, " job? ");
+      return;
+    }
+
+  crlf();
+
+  if (arg && *arg)
+    {
+      fprintf(stderr, "Would load symbols from %s\r\n", arg);
+      return;
+    }
+
+  if (currjob->proc.syms)
+    unload_symbols(currjob);
+
+  load_symbols(currjob);
+}

@@ -90,9 +90,11 @@ struct builtin builtins[] =
    {"proceed", "", "proceed job, leave tty to DDT [$p]", proced},
    {"retry", "<prgm> <opt jcl>", "invoke <prgm>, clobbering any old copy", retry},
    {"self", "", "select DDT as current job", self},
+   {"sl", "<file>", "same as :symlod (load symbols only, don't clobber core)", symlod},
    {"slist", "", "same as :lists", lists},
    {"sstatus", "", "type system status", sstatus_},
    {"start", "<start addr (opt)>", "start inferior [<addr>$g]", go},
+   {"symlod", "<file>", "load symbols only (don't clobber core)", symlod},
    {"version", "", "type version number of Linux and DDT", version_},
    {"?", "", "list all : commands", list_builtins},
    {0, 0, 0, 0}
