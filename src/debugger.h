@@ -26,4 +26,10 @@ int ptrace_interrupt(pid_t pid);
 int ptrace_setopts(pid_t pid, int opts);
 int ptrace_cont(pid_t pid);
 
+void load_symbols(struct job *j);
+void unload_symbols(struct job *j);
+void listp(char *);
+void lists(char *);
+void symlod(char *arg);
+
 extern uint64_t qreg;

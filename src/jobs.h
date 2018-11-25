@@ -24,7 +24,7 @@ struct process {
   struct file ufname;
   char **argv;
   char **env;
-  void *syms;
+  char *syms;
   size_t symlen;
   pid_t pid;
   int status;
@@ -65,10 +65,8 @@ void lfile(char *);
 void forget(char *);
 void self(char *);
 void genjob(char *);
-void listp(char *);
 
 void run_(char *jname, char *arg, int genj, int loadsyms);
-void load_symbols(struct job *j);
 
 void errout(char *arg);
 
