@@ -32,21 +32,24 @@ along with Linux-ddt. If not, see <https://www.gnu.org/licenses/>.
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <ctype.h>
 #include "jobs.h"
+#include "debugger.h"
+
+typeoutfunc *mperce = tmc;	/* tms */
+typeoutfunc *mamper = tmc;	/* tmsq */
+typeoutfunc *mdolla = tmc;	/* tms */
+typeoutfunc *mprime = tmc;	/* tm6 */
+typeoutfunc *mdquot = tma;
+typeoutfunc *mnmsgn = tmch;
+typeoutfunc *mch = tmc;
+typeoutfunc *sch = tmc;
 
 uint64_t qreg = 0;
 
 static void crlf(void)
 {
   fputs("\r\n", stderr);
-}
-
-void typeout_pc(struct job *j)
-{
-  long pc = ptrace(PTRACE_PEEKUSER, j->proc.pid, RIP * 8, NULL);
-  long data = ptrace(PTRACE_PEEKDATA, j->proc.pid, pc, NULL);
-
-  fprintf(stderr, "%lx)   %lx   ", pc, data);
 }
 
 void step_job(struct job *j)
@@ -229,4 +232,64 @@ void symlod(char *arg)
     unload_symbols(currjob);
 
   load_symbols(currjob);
+}
+
+static void outchar(unsigned char c)
+{
+  if (c & 0x80)
+    {
+      fputc('$', stderr);
+      c &= 0x7f;
+    }
+  if (c == 0x7f)
+    {
+      fputc('^', stderr);
+      c = '?';
+    }
+  else if (iscntrl(c))
+    {
+      fputc('^', stderr);
+      c += 64;
+    }
+  fputc(c, stderr);
+}
+
+void tma(uint64_t value)
+{
+  unsigned char *str = (char *)value;
+  for (int i = 0; str[i]; i++)
+    outchar(str[i]);
+}
+
+void tmch(uint64_t value)
+{
+  char c = (char)(value & 0x7f);
+
+  fputs("$1#", stderr);
+  outchar(c);
+}
+
+void tmc(uint64_t value)
+{
+  fprintf(stderr, "%lu", value);
+}
+
+void tmf(uint64_t value)
+{
+  fprintf(stderr, "%f", (double)value);
+}
+
+void tmh(uint64_t value)
+{
+  fprintf(stderr, "%x,,%x", (uint32_t)(value >> 32), (uint32_t)(value & 0xffffffff));
+}
+
+void typeout_pc(struct job *j)
+{
+  long pc = ptrace(PTRACE_PEEKUSER, j->proc.pid, RIP * 8, NULL);
+  long data = ptrace(PTRACE_PEEKDATA, j->proc.pid, pc, NULL);
+
+  fprintf(stderr, "%lx)   ", pc);
+  sch(data);
+  fputs("   ", stderr);
 }

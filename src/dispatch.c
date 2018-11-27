@@ -101,6 +101,31 @@ static void altarg (void)
     fputc(BELL, stderr);
 }
 
+static void amper (void)
+{
+  if (!currjob)
+    {
+      fputs(" job? ", stderr);
+      return;
+    }
+
+  if (nprefix)
+    arg();
+  else
+    currjob->tamper(qreg);
+}
+
+static void nmsgn (void)
+{
+  if (nprefix)
+    arg();
+  else
+    if (currjob)
+      currjob->tnmsgn(qreg);
+    else
+      mnmsgn(qreg);
+}
+
 static void arg4 (void)
 {
   if (narg4 < PREFIX_MAXBUF)
@@ -413,7 +438,7 @@ void files (void)
   done = 1;
 }
 
-void showq (void)
+void equal (void)
 {
   if (nprefix)
     {
@@ -430,11 +455,11 @@ void showq (void)
     }
   if (altmodes)
     {
-      fprintf(stderr, "%f   ", (double)qreg);
+      tmf(qreg);
       altmodes = 0;
     }
   else
-    fprintf(stderr, "%lu   ", qreg);
+    tmc(qreg);
 
  leave:
   prefix[nprefix] = nprefix = 0;
@@ -537,11 +562,13 @@ void dispatch_init (void)
   alt['-'] = altarg;
   alt['.'] = altarg;
   alt['!'] = altarg;
+  plain['#'] = nmsgn;
+  plain['&'] = amper;
 
   plain[':'] = colon;
   alt[':'] = colon;
-  plain['='] = showq;
-  alt['='] = showq;
+  plain['='] = equal;
+  alt['='] = equal;
 
   alt['g'] = start;
   alt['j'] = job;

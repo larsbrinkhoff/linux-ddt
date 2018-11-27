@@ -16,6 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Linux-ddt. If not, see <https://www.gnu.org/licenses/>.
 */
+#include <stdint.h>
 #include <termios.h>
 #include "files.h"
 
@@ -30,6 +31,8 @@ struct process {
   int status;
 };
 
+typedef void (typeoutfunc)(uint64_t);
+
 struct job {
   char *jname;
   char *xjname;
@@ -38,6 +41,12 @@ struct job {
   char slot;
   struct termios tmode;
   struct process proc;
+  typeoutfunc *tdquote;
+  typeoutfunc *tnmsgn;
+  typeoutfunc *tdollar;
+  typeoutfunc *tperce;
+  typeoutfunc *tamper;
+  typeoutfunc *tprime;
 };
 
 void jobs_init(void);
