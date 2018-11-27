@@ -457,12 +457,49 @@ void equal (void)
     {
       tmf(qreg);
       altmodes = 0;
+      fn = plain;
     }
   else
     tmc(qreg);
 
  leave:
   prefix[nprefix] = nprefix = 0;
+}
+
+static void radix8 (void)
+{
+  altmodes--;
+  setradix(8, altmodes);
+  if (altmodes)
+    {
+      fputs("   ", stderr);
+      altmodes = 0;
+    }
+  fn = plain;
+}
+
+static void radix10 (void)
+{
+  altmodes--;
+  setradix(10, altmodes - 1);
+  if (altmodes)
+    {
+      fputs("   ", stderr);
+      altmodes = 0;
+    }
+  fn = plain;
+}
+
+static void radix16 (void)
+{
+  altmodes--;
+  setradix(16, altmodes - 1);
+  if (altmodes)
+    {
+      fputs("   ", stderr);
+      altmodes = 0;
+    }
+  fn = plain;
 }
 
 static void chquote (void)
@@ -570,12 +607,15 @@ void dispatch_init (void)
   plain['='] = equal;
   alt['='] = equal;
 
+  alt['d'] = radix10;
   alt['g'] = start;
   alt['j'] = job;
   alt['l'] = load;
+  alt['o'] = radix8;
   alt['p'] = cont;
   alt['u'] = login;
   alt['v'] = raid;
+  alt['X'] = radix16;
   alt['?'] = print_args;
 
   monmode = 0;
@@ -608,6 +648,7 @@ void prompt_and_execute (void)
   prefix[0] = nprefix = 0;
   arg4str[0] = narg4 = 0;
   fn = plain;
+  resetradix();
 
   do
     {

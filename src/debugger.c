@@ -270,7 +270,13 @@ void tmch(uint64_t value)
 }
 
 static char radix = 16;
+static char tradix = 16;
 static char radixchars[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+void resetradix(void)
+{
+  tradix = radix;
+}
 
 static void outradix(uint64_t value)
 {
@@ -279,11 +285,18 @@ static void outradix(uint64_t value)
   str[i] = 0;
   for (i = 64; i--;)
     {
-      str[i] = radixchars[(value % radix)];
-      if (!(value /= radix))
+      str[i] = radixchars[(value % tradix)];
+      if (!(value /= tradix))
 	break;
     }
   fputs(&str[i], stderr);
+}
+
+void setradix(int r, int perm)
+{
+  tradix = (r % 36);
+  if (perm > 0)
+    radix = tradix;
 }
 
 void tmc(uint64_t value)
