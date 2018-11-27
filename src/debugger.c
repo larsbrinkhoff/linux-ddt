@@ -269,10 +269,10 @@ void tmch(uint64_t value)
   outchar(c);
 }
 
-char radix = 16;
+static char radix = 16;
 static char radixchars[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-void tmc(uint64_t value)
+static void outradix(uint64_t value)
 {
   int i = 64;
   char str[65];
@@ -286,6 +286,11 @@ void tmc(uint64_t value)
   fputs(&str[i], stderr);
 }
 
+void tmc(uint64_t value)
+{
+  outradix(value);
+}
+
 void tmf(uint64_t value)
 {
   fprintf(stderr, "%f", (double)value);
@@ -293,7 +298,9 @@ void tmf(uint64_t value)
 
 void tmh(uint64_t value)
 {
-  fprintf(stderr, "%x,,%x", (uint32_t)(value >> 32), (uint32_t)(value & 0xffffffff));
+  outradix(value >> 32);
+  fputs(",,", stderr);
+  outradix(value & 0xffffffff);
 }
 
 void typeout_pc(struct job *j)
