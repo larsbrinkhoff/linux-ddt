@@ -269,9 +269,21 @@ void tmch(uint64_t value)
   outchar(c);
 }
 
+char radix = 16;
+static char radixchars[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+
 void tmc(uint64_t value)
 {
-  fprintf(stderr, "%lu", value);
+  int i = 64;
+  char str[65];
+  str[i] = 0;
+  for (i = 64; i--;)
+    {
+      str[i] = radixchars[(value % radix)];
+      if (!(value /= radix))
+	break;
+    }
+  fputs(&str[i], stderr);
 }
 
 void tmf(uint64_t value)
