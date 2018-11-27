@@ -189,6 +189,12 @@ static struct job *initslot(char slot, char *jname)
   j->proc.symlen = 0;
   j->proc.pid = 0;
   j->proc.status = 0;
+  j->tperce = mperce;
+  j->tamper = mamper;
+  j->tdollar = mdolla;
+  j->tdquote = mdquot;
+  j->tprime = mprime;
+  j->tnmsgn = mnmsgn;
 
   return j;
 }

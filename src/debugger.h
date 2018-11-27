@@ -32,4 +32,20 @@ void listp(char *);
 void lists(char *);
 void symlod(char *arg);
 
+void tmc(uint64_t value);
+void tma(uint64_t value);
+void tmch(uint64_t value);
+void tmf(uint64_t value);
+
+void resetradix(void);
+void setradix(int r, int perm);
+
+extern typeoutfunc *mdquot;
+extern typeoutfunc *mnmsgn;
+extern typeoutfunc *mdolla;
+extern typeoutfunc *mperce;
+extern typeoutfunc *mamper;
+extern typeoutfunc *mprime;
+extern typeoutfunc *tch;
+
 extern uint64_t qreg;

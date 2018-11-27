@@ -101,6 +101,31 @@ static void altarg (void)
     fputc(BELL, stderr);
 }
 
+static void amper (void)
+{
+  if (!currjob)
+    {
+      fputs(" job? ", stderr);
+      return;
+    }
+
+  if (nprefix)
+    arg();
+  else
+    currjob->tamper(qreg);
+}
+
+static void nmsgn (void)
+{
+  if (nprefix)
+    arg();
+  else
+    if (currjob)
+      currjob->tnmsgn(qreg);
+    else
+      mnmsgn(qreg);
+}
+
 static void arg4 (void)
 {
   if (narg4 < PREFIX_MAXBUF)
@@ -413,7 +438,7 @@ void files (void)
   done = 1;
 }
 
-void showq (void)
+void equal (void)
 {
   if (nprefix)
     {
@@ -430,14 +455,51 @@ void showq (void)
     }
   if (altmodes)
     {
-      fprintf(stderr, "%f   ", (double)qreg);
+      tmf(qreg);
       altmodes = 0;
+      fn = plain;
     }
   else
-    fprintf(stderr, "%lu   ", qreg);
+    tmc(qreg);
 
  leave:
   prefix[nprefix] = nprefix = 0;
+}
+
+static void radix8 (void)
+{
+  altmodes--;
+  setradix(8, altmodes);
+  if (altmodes)
+    {
+      fputs("   ", stderr);
+      altmodes = 0;
+    }
+  fn = plain;
+}
+
+static void radix10 (void)
+{
+  altmodes--;
+  setradix(10, altmodes - 1);
+  if (altmodes)
+    {
+      fputs("   ", stderr);
+      altmodes = 0;
+    }
+  fn = plain;
+}
+
+static void radix16 (void)
+{
+  altmodes--;
+  setradix(16, altmodes - 1);
+  if (altmodes)
+    {
+      fputs("   ", stderr);
+      altmodes = 0;
+    }
+  fn = plain;
 }
 
 static void chquote (void)
@@ -537,18 +599,23 @@ void dispatch_init (void)
   alt['-'] = altarg;
   alt['.'] = altarg;
   alt['!'] = altarg;
+  plain['#'] = nmsgn;
+  plain['&'] = amper;
 
   plain[':'] = colon;
   alt[':'] = colon;
-  plain['='] = showq;
-  alt['='] = showq;
+  plain['='] = equal;
+  alt['='] = equal;
 
+  alt['d'] = radix10;
   alt['g'] = start;
   alt['j'] = job;
   alt['l'] = load;
+  alt['o'] = radix8;
   alt['p'] = cont;
   alt['u'] = login;
   alt['v'] = raid;
+  alt['X'] = radix16;
   alt['?'] = print_args;
 
   monmode = 0;
@@ -581,6 +648,7 @@ void prompt_and_execute (void)
   prefix[0] = nprefix = 0;
   arg4str[0] = narg4 = 0;
   fn = plain;
+  resetradix();
 
   do
     {

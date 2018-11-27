@@ -37,5 +37,5 @@ ccmd.o: ccmd.c ccmd.h $(INCL) user.h term.h debugger.h
 jobs.o: jobs.c $(INCL) user.h term.h debugger.h
 user.o: user.c $(INCL) term.h
 files.o: files.c $(INCL) term.h
-debugger.o: debugger.c $(INCL)
+debugger.o: debugger.c $(INCL) debugger.h
 aeval.o: aeval.c aeval.h jobs.h
