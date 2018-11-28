@@ -167,20 +167,37 @@ char *evalterm(char *expr, uint64_t *value)
   return expr;
 }
 
-static char *exprtail(char *expr, uint64_t *value)
+static char *exprtail(unsigned char *expr, uint64_t *value)
 {
-  uint64_t result = 0;
+  union val v;
+  union val result;
+  result.i = 0;
+
   switch (*expr)
     {
     case '+':
-      if ((expr = evalterm(++expr, &result)) == NULL)
+      if ((expr = evalterm(++expr, &result.i)) == NULL)
 	return expr;
-      *value = *value + result;
+      *value = *value + result.i;
       break;
     case '-':
-      if ((expr = evalterm(++expr, &result)) == NULL)
+      if ((expr = evalterm(++expr, &result.i)) == NULL)
 	return expr;
-      *value = *value - result;
+      *value = *value - result.i;
+      break;
+    case ALT_('+'):
+      if ((expr = evallogic(++expr, &result.i)) == NULL)
+    	return expr;
+      v.i = *value;
+      v.f = v.f + result.f;
+      *value = v.i;
+      break;
+    case ALT_('-'):
+      if ((expr = evallogic(++expr, &result.i)) == NULL)
+	return expr;
+      v.i = *value;
+      v.f = v.f - result.f;
+      *value = v.i;
       break;
     default:
       return expr;
