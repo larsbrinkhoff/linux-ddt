@@ -60,7 +60,7 @@ void sstatus(char *unused)
 {
   double lavg[3];
   int n;
-  fprintf(stderr, "%d Lusers, Load Avgs = ", 1);
+  fputs("You're all alone, Load Avgs = ", stderr);
   if (getloadavg(lavg, 3) == -1)
     fputs("unknown", stderr);
   else
