@@ -127,5 +127,6 @@ void chuname (char *name)
     }
   clear(NULL);
   version(NULL);
+  sstatus(NULL);
   login_as(name);
 }
