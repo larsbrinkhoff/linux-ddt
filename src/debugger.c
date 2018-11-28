@@ -304,9 +304,16 @@ void tmc(uint64_t value)
   outradix(value);
 }
 
+union val {
+  uint64_t i;
+  double f;
+};
+
 void tmf(uint64_t value)
 {
-  fprintf(stderr, "%f", (double)value);
+  union val v;
+  v.i = value;
+  fprintf(stderr, "%f", v.f);
 }
 
 void tmh(uint64_t value)
