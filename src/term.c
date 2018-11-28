@@ -128,7 +128,7 @@ char morwarn = 0;
 int uquery(char *text)
 {
   fprintf(stderr, "--%s--", text);
-  if (morewarn)
+  if (morwarn)
     fputs(" (Space=yes, Rubout=no)", stderr);
   return (term_read() == ' ');
 }
