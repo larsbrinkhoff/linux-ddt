@@ -507,7 +507,6 @@ static void settmc (void)
   if (altmodes--)
       fputs("   ", stderr);
 
-  setradix(16, altmodes);
   settypeo(tmc, altmodes);
 
   altmodes = 0;
