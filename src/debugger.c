@@ -292,6 +292,11 @@ static void outradix(uint64_t value)
   fputs(&str[i], stderr);
 }
 
+void resettypeo(void)
+{
+  sch = mch;
+}
+
 void settypeo(typeoutfunc *f, int perm)
 {
   sch = f;

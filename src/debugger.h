@@ -41,6 +41,7 @@ void tmh(uint64_t value);
 void resetradix(void);
 void setradix(int r, int perm);
 void settypeo(typeoutfunc *f, int perm);
+void resettypeo(void);
 
 extern typeoutfunc *mdquot;
 extern typeoutfunc *mnmsgn;
