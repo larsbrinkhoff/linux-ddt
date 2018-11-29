@@ -481,7 +481,7 @@ static void radix8 (void)
 static void radix10 (void)
 {
   altmodes--;
-  setradix(10, altmodes - 1);
+  setradix(10, altmodes);
   if (altmodes)
     {
       fputs("   ", stderr);
@@ -493,12 +493,45 @@ static void radix10 (void)
 static void radix16 (void)
 {
   altmodes--;
-  setradix(16, altmodes - 1);
+  setradix(16, altmodes);
   if (altmodes)
     {
       fputs("   ", stderr);
       altmodes = 0;
     }
+  fn = plain;
+}
+
+static void settmc (void)
+{
+  if (altmodes--)
+      fputs("   ", stderr);
+
+  settypeo(tmc, altmodes);
+
+  altmodes = 0;
+  fn = plain;
+}
+
+static void settmf (void)
+{
+  if (altmodes--)
+      fputs("   ", stderr);
+
+  settypeo(tmf, altmodes);
+
+  altmodes = 0;
+  fn = plain;
+}
+
+static void settmh (void)
+{
+  if (altmodes--)
+      fputs("   ", stderr);
+
+  settypeo(tmh, altmodes);
+
+  altmodes = 0;
   fn = plain;
 }
 
@@ -607,8 +640,11 @@ void dispatch_init (void)
   plain['='] = equal;
   alt['='] = equal;
 
+  alt['c'] = settmc;
   alt['d'] = radix10;
+  alt['f'] = settmf;
   alt['g'] = start;
+  alt['h'] = settmh;
   alt['j'] = job;
   alt['l'] = load;
   alt['o'] = radix8;

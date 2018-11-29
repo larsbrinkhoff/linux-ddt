@@ -23,6 +23,11 @@ along with Linux-ddt. If not, see <https://www.gnu.org/licenses/>.
 #include <errno.h>
 #include "aeval.h"
 
+union val {
+  uint64_t i;
+  double f;
+};
+
 // TODO: errout needs to be moved out of jobs.c
 #include "jobs.h"
 
@@ -32,6 +37,7 @@ int base = 10;
 
 char *evalfactor(char *expr, uint64_t *value)
 {
+  union val v;
   if (*expr == '-')
     {
       expr++;
@@ -40,13 +46,29 @@ char *evalfactor(char *expr, uint64_t *value)
     }
   else if (isdigit(*expr))
     {
-      uint64_t v;
-      char *end = expr;
+      // uint64_t v;
+      char *end;
       errno = 0;
-      v = strtoull(expr, &expr, base);
+      v.i = strtoull(expr, &end, base);
       if (errno)
-	errout("bad int");
-      *value = v;
+	{
+	  errout("evalfactor");
+	}
+      else if (*end == '.' || *end == 'E' || *end == 'e')
+      	{
+      	  v.f = strtod(expr, &end);
+      	  errno = 0;
+      	  if (errno)
+      	    errout("evalfactor");
+      	  expr = end;
+      	  *value = v.i;
+	  fprintf(stderr, "(%f)", v.f);
+      	}
+      else
+	{
+	  *value = v.i;
+	  expr = end;
+	}
     }
   else
     expr = NULL;
@@ -96,28 +118,34 @@ char *evallogic(char *expr, uint64_t *value)
 
 static char *termtail(char *expr, uint64_t *value)
 {
-  uint64_t result = 0;
+  union val v;
+  union val result;
+  result.i = 0;
   switch ((unsigned char)*expr)
     {
     case '*':
-      if ((expr = evallogic(++expr, &result)) == NULL)
+      if ((expr = evallogic(++expr, &result.i)) == NULL)
 	return expr;
-      *value = *value * result;
+      *value = *value * result.i;
       break;
     case '!':
-      if ((expr = evallogic(++expr, &result)) == NULL)
+      if ((expr = evallogic(++expr, &result.i)) == NULL)
 	return expr;
-      *value = *value / result;
+      *value = *value / result.i;
       break;
     case ALT_('*'):
-      if ((expr = evallogic(++expr, &result)) == NULL)
+      if ((expr = evallogic(++expr, &result.i)) == NULL)
     	return expr;
-      *value = (uint64_t) ((double)(*value) * (double)result);
+      v.i = *value;
+      v.f = v.f * result.f;
+      *value = v.i;
       break;
     case ALT_('!'):
-      if ((expr = evallogic(++expr, &result)) == NULL)
+      if ((expr = evallogic(++expr, &result.i)) == NULL)
 	return expr;
-      *value = (uint64_t) ((double)(*value) / (double)result);
+      v.i = *value;
+      v.f = v.f / result.f;
+      *value = v.i;
       break;
     default:
       return expr;
@@ -139,20 +167,37 @@ char *evalterm(char *expr, uint64_t *value)
   return expr;
 }
 
-static char *exprtail(char *expr, uint64_t *value)
+static char *exprtail(unsigned char *expr, uint64_t *value)
 {
-  uint64_t result = 0;
+  union val v;
+  union val result;
+  result.i = 0;
+
   switch (*expr)
     {
     case '+':
-      if ((expr = evalterm(++expr, &result)) == NULL)
+      if ((expr = evalterm(++expr, &result.i)) == NULL)
 	return expr;
-      *value = *value + result;
+      *value = *value + result.i;
       break;
     case '-':
-      if ((expr = evalterm(++expr, &result)) == NULL)
+      if ((expr = evalterm(++expr, &result.i)) == NULL)
 	return expr;
-      *value = *value - result;
+      *value = *value - result.i;
+      break;
+    case ALT_('+'):
+      if ((expr = evallogic(++expr, &result.i)) == NULL)
+    	return expr;
+      v.i = *value;
+      v.f = v.f + result.f;
+      *value = v.i;
+      break;
+    case ALT_('-'):
+      if ((expr = evallogic(++expr, &result.i)) == NULL)
+	return expr;
+      v.i = *value;
+      v.f = v.f - result.f;
+      *value = v.i;
       break;
     default:
       return expr;

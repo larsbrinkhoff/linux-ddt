@@ -123,8 +123,12 @@ void clear(char *arg)
   fprintf(stderr, "\033[2J\033[H");
 }
 
+char morwarn = 0;
+
 int uquery(char *text)
 {
   fprintf(stderr, "--%s--", text);
+  if (morwarn)
+    fputs(" (Space=yes, Rubout=no)", stderr);
   return (term_read() == ' ');
 }

@@ -292,11 +292,24 @@ static void outradix(uint64_t value)
   fputs(&str[i], stderr);
 }
 
+void resettypeo(void)
+{
+  sch = mch;
+}
+
+void settypeo(typeoutfunc *f, int perm)
+{
+  sch = f;
+  if (perm)
+    mch = sch;
+}
+
 void setradix(int r, int perm)
 {
   tradix = (r % 36);
   if (perm > 0)
-    radix = tradix;
+      radix = tradix;
+  settypeo(tmc, perm);
 }
 
 void tmc(uint64_t value)
@@ -304,9 +317,16 @@ void tmc(uint64_t value)
   outradix(value);
 }
 
+union val {
+  uint64_t i;
+  double f;
+};
+
 void tmf(uint64_t value)
 {
-  fprintf(stderr, "%f", (double)value);
+  union val v;
+  v.i = value;
+  fprintf(stderr, "%f", v.f);
 }
 
 void tmh(uint64_t value)
