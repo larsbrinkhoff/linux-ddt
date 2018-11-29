@@ -513,6 +513,28 @@ static void settmc (void)
   fn = plain;
 }
 
+static void settmf (void)
+{
+  if (altmodes--)
+      fputs("   ", stderr);
+
+  settypeo(tmf, altmodes);
+
+  altmodes = 0;
+  fn = plain;
+}
+
+static void settmh (void)
+{
+  if (altmodes--)
+      fputs("   ", stderr);
+
+  settypeo(tmh, altmodes);
+
+  altmodes = 0;
+  fn = plain;
+}
+
 static void chquote (void)
 {
   character = term_read();
@@ -620,7 +642,9 @@ void dispatch_init (void)
 
   alt['c'] = settmc;
   alt['d'] = radix10;
+  alt['f'] = settmf;
   alt['g'] = start;
+  alt['h'] = settmh;
   alt['j'] = job;
   alt['l'] = load;
   alt['o'] = radix8;

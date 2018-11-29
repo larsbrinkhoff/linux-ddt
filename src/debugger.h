@@ -36,6 +36,7 @@ void tmc(uint64_t value);
 void tma(uint64_t value);
 void tmch(uint64_t value);
 void tmf(uint64_t value);
+void tmh(uint64_t value);
 
 void resetradix(void);
 void setradix(int r, int perm);
