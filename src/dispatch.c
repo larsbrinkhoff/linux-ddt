@@ -502,6 +502,18 @@ static void radix16 (void)
   fn = plain;
 }
 
+static void settmc (void)
+{
+  if (altmodes--)
+      fputs("   ", stderr);
+
+  setradix(16, altmodes);
+  settypeo(tmc, altmodes);
+
+  altmodes = 0;
+  fn = plain;
+}
+
 static void chquote (void)
 {
   character = term_read();
@@ -607,6 +619,7 @@ void dispatch_init (void)
   plain['='] = equal;
   alt['='] = equal;
 
+  alt['c'] = settmc;
   alt['d'] = radix10;
   alt['g'] = start;
   alt['j'] = job;
