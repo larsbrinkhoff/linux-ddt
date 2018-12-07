@@ -33,8 +33,6 @@ union val {
 
 #define ALT_(c)	((c)+0x80)
 
-int base = 10;
-
 char *evalfactor(char *expr, uint64_t *value)
 {
   union val v;
@@ -46,10 +44,9 @@ char *evalfactor(char *expr, uint64_t *value)
     }
   else if (isdigit(*expr))
     {
-      // uint64_t v;
       char *end;
       errno = 0;
-      v.i = strtoull(expr, &end, base);
+      v.i = strtoull(expr, &end, 0);
       if (errno)
 	{
 	  errout("evalfactor");
