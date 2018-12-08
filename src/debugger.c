@@ -33,6 +33,8 @@ along with Linux-ddt. If not, see <https://www.gnu.org/licenses/>.
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <ctype.h>
+#include <signal.h>
+#include <setjmp.h>
 #include "jobs.h"
 #include "debugger.h"
 
@@ -47,6 +49,18 @@ typeoutfunc *sch = tmc;
 
 uint64_t qreg = 0;
 
+struct location {
+  pid_t pid;
+  uint32_t _pad;
+  uint64_t addr;
+};
+
+#define DOTRING_SIZE 8
+struct location *openloc = NULL;
+struct location dotring[DOTRING_SIZE] = { 0 };
+unsigned char dr_start = 0;
+unsigned char dr_end = 0;
+
 static void crlf(void)
 {
   fputs("\r\n", stderr);
@@ -58,6 +72,67 @@ void step_job(struct job *j)
   if (ptrace(PTRACE_SINGLESTEP, j->proc.pid, NULL, NULL) == -1)
     errout("ptrace");
   check_jobs();
+}
+
+void pushdot(pid_t pid, uint64_t value)
+{
+  dr_end = ++dr_end % DOTRING_SIZE;
+
+  dotring[dr_end].pid = pid;
+  dotring[dr_end].addr = value;
+
+  if (dr_end == dr_start)
+    dr_start = ++dr_start % DOTRING_SIZE;
+}
+
+sigjmp_buf point;
+
+static void segvhandler(int sig, siginfo_t *ign1, void *ign2)
+{
+  longjmp(point, 1);
+}
+
+int openlocation(pid_t pid, uint64_t addr)
+{
+  int ret = 1;
+
+  pushdot(pid, addr);
+  openloc = &dotring[dr_start];
+  if (pid)
+    {
+      errno = 0;
+      long data = ptrace(PTRACE_PEEKDATA, pid, addr, NULL);
+      if (errno)
+	{
+	  errout("mem err?");
+	  ret = 0;
+	}
+      else
+	qreg = data;
+    }
+  else
+    {
+      struct sigaction sa;
+      memset(&sa, 0, sizeof(sigaction));
+      sigemptyset(&sa.sa_mask);
+      sa.sa_flags = SA_SIGINFO | SA_RESETHAND;
+      sa.sa_sigaction = segvhandler;
+      sigaction(SIGSEGV, &sa, NULL);
+      if (setjmp(point) == 0)
+	qreg = *(char *)addr;
+      else
+	{
+	  fprintf(stderr, "mem err? ");
+	  ret = 0;
+	}
+    }
+
+  return ret;
+}
+
+void closelocation(void)
+{
+  openloc = NULL;
 }
 
 int ptrace_seize(pid_t pid)
@@ -259,6 +334,7 @@ void tma(uint64_t value)
   unsigned char *str = (char *)value;
   for (int i = 0; str[i]; i++)
     outchar(str[i]);
+  fputs("   ", stderr);
 }
 
 void tmch(uint64_t value)
@@ -267,6 +343,7 @@ void tmch(uint64_t value)
 
   fputs("$1#", stderr);
   outchar(c);
+  fputs("   ", stderr);
 }
 
 static char radix = 16;
@@ -315,6 +392,7 @@ void setradix(int r, int perm)
 void tmc(uint64_t value)
 {
   outradix(value);
+  fputs("   ", stderr);
 }
 
 union val {
@@ -327,6 +405,7 @@ void tmf(uint64_t value)
   union val v;
   v.i = value;
   fprintf(stderr, "%f", v.f);
+  fputs("   ", stderr);
 }
 
 void tmh(uint64_t value)
@@ -334,6 +413,7 @@ void tmh(uint64_t value)
   outradix(value >> 32);
   fputs(",,", stderr);
   outradix(value & 0xffffffff);
+  fputs("   ", stderr);
 }
 
 void typeout_pc(struct job *j)
@@ -343,5 +423,4 @@ void typeout_pc(struct job *j)
 
   fprintf(stderr, "%lx)   ", pc);
   sch(data);
-  fputs("   ", stderr);
 }
