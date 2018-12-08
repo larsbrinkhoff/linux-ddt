@@ -42,6 +42,8 @@ void resetradix(void);
 void setradix(int r, int perm);
 void settypeo(typeoutfunc *f, int perm);
 void resettypeo(void);
+int openlocation(pid_t pid, uint64_t addr);
+void closelocation(void);
 
 extern typeoutfunc *mdquot;
 extern typeoutfunc *mnmsgn;

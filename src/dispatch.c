@@ -57,6 +57,7 @@ static void echo (int ch)
   switch (ch)
     {
     case ALTMODE: fputc ('$', stderr); break;
+    case '\r': fputc ('\r', stderr); fputc ('\n', stderr); break;
     default:
       if (iscntrl(ch))
 	{
@@ -384,12 +385,18 @@ void backspace (void)
     contin(NULL);
 }
 
-void flushin (void)
+static void resetargs (void)
 {
-  fputs(" xxx? ", stderr);
   altmodes = 0;
   prefix[0] = nprefix = 0;
   arg4str[0] = narg4 = 0;
+  fn = plain;
+}
+
+void flushin (void)
+{
+  fputs(" xxx? ", stderr);
+  resetargs();
 }
 
 void load (void)
@@ -454,16 +461,12 @@ void equal (void)
 	}
     }
   if (altmodes)
-    {
-      tmf(qreg);
-      altmodes = 0;
-      fn = plain;
-    }
+    tmf(qreg);
   else
     tmc(qreg);
 
  leave:
-  prefix[nprefix] = nprefix = 0;
+  resetargs();
 }
 
 static void radix8 (void)
@@ -572,6 +575,41 @@ static void step (void)
     }
 }
 
+void opennum (void)
+{
+  uint64_t n;
+  if (nprefix)
+    {
+      char *r;
+      if ((r = evalexpr(prefix, &n))
+	  && *r)
+	{
+	  fputs("?? ", stderr);
+	  goto leave;
+	}
+    }
+  else
+    n = qreg;
+
+  if (openlocation(currjob ? currjob->proc.pid : 0, n))
+    {
+      fputs("   ", stderr);
+      tmc(qreg);
+    }
+
+ leave:
+  resetargs();
+}
+
+void carret (void)
+{
+  if (nprefix)
+    fprintf(stderr, "\r\nWould deposit arg\r\n");
+
+  closelocation();
+  resettypeo();
+}
+
 void dispatch_init (void)
 {
   int i;
@@ -606,6 +644,7 @@ void dispatch_init (void)
   alt[CTRL_('K')] = kreat;
   plain[FORMFEED] = formfeed;
   alt[FORMFEED] = formfeed;
+  plain[CTRL_('M')] = carret;
   plain[CTRL_('N')] = step;
   plain[CTRL_('P')] = proceed;
   plain[CTRL_('Q')] = chquote;
@@ -634,6 +673,8 @@ void dispatch_init (void)
   alt['!'] = altarg;
   plain['#'] = nmsgn;
   plain['&'] = amper;
+
+  plain['['] = opennum;
 
   plain[':'] = colon;
   alt[':'] = colon;
@@ -680,10 +721,7 @@ void prompt_and_execute (void)
       else
 	fputs("\010 \010", stderr);
     }
-  altmodes = 0;
-  prefix[0] = nprefix = 0;
-  arg4str[0] = narg4 = 0;
-  fn = plain;
+  resetargs();
   resetradix();
 
   do
