@@ -45,12 +45,4 @@ void resettypeo(void);
 int openlocation(pid_t pid, uint64_t addr);
 void closelocation(void);
 
-extern typeoutfunc *mdquot;
-extern typeoutfunc *mnmsgn;
-extern typeoutfunc *mdolla;
-extern typeoutfunc *mperce;
-extern typeoutfunc *mamper;
-extern typeoutfunc *mprime;
-extern typeoutfunc *tch;
-
 extern uint64_t qreg;

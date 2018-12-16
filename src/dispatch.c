@@ -26,6 +26,7 @@ along with Linux-ddt. If not, see <https://www.gnu.org/licenses/>.
 #include "user.h"
 #include "debugger.h"
 #include "aeval.h"
+#include "typeout.h"
 
 #define PREFIX_MAXBUF 255
 #define SUFFIX_MAXBUF 255

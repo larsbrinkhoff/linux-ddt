@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Linux-ddt. If not, see <https://www.gnu.org/licenses
 PROGS=ddt
-OBJS=main.o dispatch.o term.o ccmd.o jobs.o user.o files.o debugger.o aeval.o
+OBJS=main.o dispatch.o term.o ccmd.o jobs.o user.o files.o debugger.o aeval.o typeout.o
 INCL=files.h jobs.h
 CFLAGS=-O1 -g
 
@@ -31,11 +31,12 @@ clobber: clean
 	$(RM) $(PROGS)
 
 main.o: main.c $(INCL) term.h dispatch.h
-dispatch.o: dispatch.c $(INCL) term.h ccmd.h user.h debugger.h aeval.h
+dispatch.o: dispatch.c $(INCL) term.h ccmd.h user.h debugger.h aeval.h typeout.h
 term.o: term.c
 ccmd.o: ccmd.c ccmd.h $(INCL) user.h term.h debugger.h
-jobs.o: jobs.c $(INCL) user.h term.h debugger.h
+jobs.o: jobs.c $(INCL) user.h term.h debugger.h typeout.h
 user.o: user.c $(INCL) term.h
 files.o: files.c $(INCL) term.h
 debugger.o: debugger.c $(INCL) debugger.h
 aeval.o: aeval.c aeval.h jobs.h
+typeout.o: typeout.c typeout.h
