@@ -31,6 +31,7 @@ along with Linux-ddt. If not, see <https://www.gnu.org/licenses/>.
 #include "user.h"
 #include "term.h"
 #include "debugger.h"
+#include "typeout.h"
 
 #define MAXJOBS 8
 #define MAXARGS 256

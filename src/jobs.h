@@ -19,6 +19,7 @@ along with Linux-ddt. If not, see <https://www.gnu.org/licenses/>.
 #include <stdint.h>
 #include <termios.h>
 #include "files.h"
+#include "typeout.h"
 
 struct process {
   // struct process *next;
@@ -30,8 +31,6 @@ struct process {
   pid_t pid;
   int status;
 };
-
-typedef void (typeoutfunc)(uint64_t);
 
 struct job {
   char *jname;
